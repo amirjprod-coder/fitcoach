@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0d14" />
+<title>FitCoach</title>
+
+<!-- PWA / installable on phone home screen -->
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FitCoach" />
+
+<style>
+  :root{
+    --bg:#0a0d14; --panel:#12161f; --panel2:#171c28; --line:#232a38;
+    --text:#e9eef6; --muted:#8b96a8; --dim:#5d6675;
+    --navy:#15294f; --navyhi:#1f3d77; --navytag:#0f1d3a;
+    --accent:#b4ff3d; --accent2:#7ee0ff; --warn:#ff8a5b; --good:#4ade80; --bad:#f87171;
+    --r:14px;
+    --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior-y:none}
+  body{padding-bottom:calc(72px + var(--safe-b))}
+  h1,h2,h3,h4{margin:0;font-weight:800;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:inherit;font-size:16px}
+  .hide{display:none!important}
+
+  /* ---- App header ---- */
+  header.app{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,#0d111b,#0a0d14);
+    padding:calc(10px + var(--safe-t)) 16px 10px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:900;letter-spacing:.5px}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  .brand small{color:var(--accent);font-weight:900}
+  .hbtn{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+    padding:7px 11px;border-radius:20px;font-weight:700}
+
+  main{padding:14px 14px 30px;max-width:760px;margin:0 auto}
+
+  /* ---- Cards ---- */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:15px;margin-bottom:13px}
+  .card h3{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:11px}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .muted{color:var(--muted)}.dim{color:var(--dim)}
+  .big{font-size:30px;font-weight:900;letter-spacing:-.02em}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.04em}
+  .pill.acc{background:rgba(180,255,61,.14);color:var(--accent)}
+  .pill.blue{background:rgba(126,224,255,.14);color:var(--accent2)}
+  .pill.warn{background:rgba(255,138,91,.15);color:var(--warn)}
+
+  /* ---- Buttons ---- */
+  .btn{display:block;width:100%;text-align:center;padding:15px;border-radius:12px;font-weight:800;
+    font-size:15px;background:var(--accent);color:#0a0d14;letter-spacing:.02em}
+  .btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:700}
+  .btn:active{transform:scale(.99)}
+  .btnrow{display:flex;gap:10px}.btnrow>*{flex:1}
+
+  /* ---- Form fields ---- */
+  label.fld{display:block;margin-bottom:13px}
+  label.fld .lab{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.06em}
+  .fld input,.fld select{width:100%;padding:13px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;color:var(--text)}
+  .fld input:focus,.fld select:focus{outline:none;border-color:var(--accent)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:11px 14px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);
+    font-weight:700;font-size:14px;color:var(--muted);flex:1;text-align:center;min-width:30%}
+  .chip.on{background:var(--accent);color:#0a0d14;border-color:var(--accent)}
+  .chip.on.blue{background:var(--accent2);border-color:var(--accent2)}
+
+  /* ---- Bottom tab bar ---- */
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;
+    background:rgba(13,17,27,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    padding-bottom:var(--safe-b)}
+  nav.tabs button{flex:1;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--dim);font-size:10px;font-weight:700;letter-spacing:.03em}
+  nav.tabs button .ic{font-size:20px;line-height:1}
+  nav.tabs button.on{color:var(--accent)}
+
+  /* ====================================================================
+     GRIT-STYLE WORKOUT SHEET
+     ==================================================================== */
+  .sheet{border:1px solid #000;border-radius:12px;overflow:hidden;background:#0c1019;margin-bottom:13px}
+  .sheet .banner{background:#000;color:#fff;text-align:center;padding:7px;font-size:11px;font-weight:800;
+    letter-spacing:.22em;border-bottom:1px solid #222;text-transform:uppercase}
+  .sheet .motto{background:#000;color:#fff;text-align:center;font-weight:900;
+    font-size:34px;line-height:.96;letter-spacing:.04em;padding:6px 8px 13px;text-transform:uppercase;
+    font-stretch:condensed}
+  .sheet .subhead{background:#1b2a16;color:#cfe9a8;display:flex;align-items:center;justify-content:space-between;
+    padding:6px 11px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    border-top:1px solid #2c3f22;border-bottom:1px solid #2c3f22}
+  .gwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.grit{border-collapse:collapse;table-layout:fixed;font-size:12px}
+  table.grit td,table.grit th{border:1px solid #0a0f1a;padding:0;overflow:hidden}
+  .gx-tag{background:var(--navytag);color:var(--accent);font-weight:900;text-align:center;
+    position:sticky;left:0;z-index:2;font-size:11px}
+  .gx-name{background:var(--navy);color:#fff;padding:9px 10px!important;position:sticky;left:28px;z-index:2;
+    border-right:2px solid #000;overflow-wrap:anywhere;word-break:break-word}
+  .gx-name .nm{font-weight:800;font-size:13px;line-height:1.15;overflow-wrap:anywhere}
+  .gx-name .dt{color:#9fc0ff;font-size:10.5px;margin-top:2px;line-height:1.2;overflow-wrap:anywhere}
+  .gx-name .sw{margin-top:5px;display:inline-block;font-size:10px;color:#0a0d14;background:var(--accent);
+    padding:2px 7px;border-radius:10px;font-weight:800}
+  .gx-set{background:#11151f;min-width:62px;vertical-align:top}
+  .seth{background:#0c0f17;color:var(--muted);font-size:9px;font-weight:800;text-align:center;
+    padding:5px 0!important;letter-spacing:.06em}
+  .gx-set .tgt{display:block;text-align:center;color:var(--dim);font-size:9px;padding:3px 0 2px}
+  .gx-set .ins{display:flex;gap:2px;padding:0 3px 4px}
+  .gx-set input{width:50%;min-width:0;padding:6px 2px;text-align:center;background:#1a212e;
+    border:1px solid #2a3344;border-radius:6px;color:#fff;font-size:12px;font-weight:700}
+  .gx-set input.done{background:rgba(180,255,61,.16);border-color:var(--accent);color:var(--accent)}
+  .gx-set input::placeholder{color:#4a5366;font-weight:600}
+  .gbar{background:#06080d;color:#c7d2e0;text-align:center;font-size:10.5px;font-weight:700;
+    letter-spacing:.08em;padding:7px;text-transform:uppercase;border-top:1px solid #000}
+  .gx-note{background:#0e1320;color:var(--muted);min-width:90px;max-width:120px;font-size:10px;padding:8px!important;vertical-align:top;overflow-wrap:anywhere;word-break:break-word}
+
+  /* ---- progress ring / bars ---- */
+  .macrobar{margin:9px 0}
+  .macrobar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;font-weight:700}
+  .track{height:9px;background:var(--panel2);border-radius:6px;overflow:hidden}
+  .track>span{display:block;height:100%;border-radius:6px}
+
+  .listitem{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .listitem:last-child{border-bottom:none}
+  .listitem .t{flex:1}.listitem .t b{font-weight:700;font-size:14px}
+  .listitem .t small{color:var(--muted);font-size:11.5px}
+  .tagdot{width:8px;height:8px;border-radius:50%;flex:none}
+
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px;margin-bottom:13px}
+  .seg button{flex:1;padding:9px;border-radius:8px;font-weight:700;font-size:13px;color:var(--muted)}
+  .seg button.on{background:var(--accent);color:#0a0d14}
+
+  .empty{text-align:center;color:var(--dim);padding:26px 10px;font-size:13px}
+  .hero{font-size:13px;color:var(--muted);line-height:1.5}
+  .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border:none}.kv .k{color:var(--muted)}
+  .stepwrap{display:flex;gap:9px;margin:14px 0}
+  .stepdot{flex:1;height:4px;border-radius:3px;background:var(--line)}
+  .stepdot.on{background:var(--accent)}
+  a{color:var(--accent2)}
+  .modal{position:fixed;inset:0;z-index:60;background:rgba(4,6,10,.7);display:flex;align-items:flex-end;
+    justify-content:center;padding:0}
+  .sheetmodal{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;
+    width:100%;max-width:560px;max-height:82vh;overflow:auto;padding:18px 16px calc(20px + var(--safe-b))}
+  .grab{width:38px;height:4px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand"><span class="dot"></span> FIT<small>COACH</small></div>
+  <button class="hbtn" id="hbtn" onclick="App.headerAction()">Coach</button>
+</header>
+
+<main id="view"></main>
+
+<nav class="tabs" id="tabbar"></nav>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================================
+   FitCoach — DATA MODULE
+   All content below is extracted from the user's own PDF packets:
+     • F/12 — 12 Week Shred (Strength & Conditioning) — Gordon Hunter / Flex
+     • Gains By Brains — 6 Week Fat Loss
+     • The 8 Week Shred — Gold's Gym
+     • 12 Week Transformation — Murshid Akram / The Fitness Phantom
+     • The Ultimate Guide to Lean Bulking — Panacea Palm
+   Visual style modeled on the user's "8 Weeks of Grit" day sheets.
+   ========================================================================== */
+
+(function(){
+/* ---- tiny builders so the program data stays readable ------------------- */
+const X  = (tag, name, sets, reps, note) => ({ tag, name, sets, reps, note: note || '' });
+const BAR = (text) => ({ bar: text });
+
+/* Equipment vocabulary used by the trainer to match programs + swap moves */
+const EQUIP = {
+  gym:      { label: 'Full gym',            has: ['barbell','dumbbell','machine','cable','bench','pullupbar','kb','bodyweight','band','cardio'] },
+  dumbbell: { label: 'Dumbbells + bench',   has: ['dumbbell','bench','bodyweight','band','cardio'] },
+  minimal:  { label: 'Bands + bodyweight',  has: ['band','bodyweight'] },
+};
+
+/* ============================================================================
+   PROGRAM LIBRARY
+   Each program: { id, name, author, goals[], equip, weeks, daysPerWeek,
+                   level, blurb, phases[], schedule(weekIndex)->dayId|null,
+                   days{ id: {banner, motto, focus, equipTags[], blocks[]} } }
+   schedule returns, for a given 0-based program week and 0-based weekday
+   (Mon=0..Sun=6), the day id to train or null for rest.
+   ========================================================================== */
+const PROGRAMS = [
+
+/* -------------------------------------------------- 12 WEEK TRANSFORMATION */
+{
+  id: 'transform12',
+  name: '12 Week Transformation',
+  author: 'The Fitness Phantom',
+  goals: ['gain','recomp'],
+  equip: 'gym',
+  weeks: 12,
+  daysPerWeek: 6,
+  level: 'Beginner–Intermediate',
+  blurb: 'Hypertrophy + strength. Rotates the split every 2 weeks: Full-Body → Upper/Lower → Push-Pull-Legs → Combine → Bro Split. Descending reps mean you add weight each set.',
+  phases: [
+    { weeks:[0,1],  name:'Full-Body Split' },
+    { weeks:[2,3],  name:'Upper / Lower' },
+    { weeks:[4,5],  name:'Push · Pull · Legs' },
+    { weeks:[6,7],  name:'Upper / Lower Combine' },
+    { weeks:[8,9],  name:'Bro Split' },
+    { weeks:[10,11],name:'Upper / Lower Combine' },
+  ],
+  // Mon=0..Sun=6 ; phase decided by week
+  schedule(w, d){
+    const ph = Math.floor(w/2);
+    const maps = [
+      // FB: Mon Tue Wed _ Fri Sat _
+      ['fbMon','fbTue','fbWed',null,'fbFri','fbSat',null],
+      // UL: Mon Tue Wed _ Fri Sat _
+      ['ulMon','ulTue','ulWed',null,'ulFri','ulSat',null],
+      // PPL Mon-Sat
+      ['pplPush1','pplPull1','pplLegs1','pplPush2','pplPull2','pplLegs2',null],
+      // Combine Mon-Sat
+      ['cmMon','cmTue','cmWed','cmThu','cmFri','cmSat',null],
+      // Bro Mon-Sat
+      ['broChest','broLegs','broBack','broShoulder','broArmsBi','broArmsTri',null],
+      // Combine again
+      ['cmMon','cmTue','cmWed','cmThu','cmFri','cmSat',null],
+    ];
+    return maps[ph][d];
+  },
+  days: {
+    fbMon:{banner:'FULL-BODY MONDAY',motto:'BUILD THE BASE',focus:'Full Body',equipTags:['barbell','machine','cable'],blocks:[
+      BAR('Treadmill 2–5 min · full-body warm-up'),
+      X('A','Barbell Back Squat',3,'15·12·10','Legs'),
+      X('B','Leg Press',3,'12·10·8','Legs'),
+      X('C','Incline Bench Press',3,'12·10·8','Chest & Triceps'),
+      X('D','Overhead Press',3,'12·10·8','Shoulders'),
+      X('E','Barbell Bent-Over Row',3,'12·10·8','Back'),
+      X('F','Face Pull',3,'12·10·8','Back & rear delts'),
+      X('G','Plank',1,'60 sec','Core'),
+      X('H','Side Plank',1,'30s / side','Core'),
+    ]},
+    fbTue:{banner:'FULL-BODY TUESDAY',motto:'PULL YOUR WEIGHT',focus:'Full Body',equipTags:['barbell','dumbbell','cable','pullupbar'],blocks:[
+      X('A','Pull-Up',3,'AMRAP','Back & Biceps'),
+      X('B','Deadlift',4,'5·4·2·1','Legs & Back'),
+      X('C','Single-Arm DB Row',3,'10·8·6','Back & Biceps'),
+      X('D','Dumbbell Pullover',3,'12·10·8','Lats / Chest'),
+      X('E','Cable Fly',3,'12·10·8','Chest'),
+      X('F','Lateral Raise',3,'12·10·8','Shoulders'),
+      X('G','Upright Row',3,'12·10·8','Shoulders / traps'),
+      X('H','Hanging Knee Raise',2,'10','Core'),
+    ]},
+    fbWed:{banner:'FULL-BODY WEDNESDAY',motto:'NO DAYS OFF',focus:'Full Body',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Weighted Lunges',3,'12·10·8','Quads & Hams'),
+      X('B','Hamstring Curl',3,'12·10·8','Hamstrings'),
+      X('C','Weighted Push-Up',3,'AMRAP','Chest & Triceps'),
+      X('D','Flat Bench Press',3,'12·10·8','Chest & Triceps'),
+      X('E','Bar Dips',3,'AMRAP','Triceps & Chest'),
+      X('F','Barbell Front Raise',3,'12·10·8','Shoulders'),
+      X('G','Bent-Over Lateral Raise',3,'12·10·8','Rear delts'),
+      X('H','Chin-Ups',3,'AMRAP','Back & Biceps'),
+    ]},
+    fbFri:{banner:'FULL-BODY FRIDAY',motto:'EARN IT',focus:'Full Body',equipTags:['barbell','cable','pullupbar'],blocks:[
+      X('A','Barbell Back Squat',3,'15·12·10','Legs'),
+      X('B','Lat Pulldown',3,'12·10·8','Back'),
+      X('C','Seated Cable Row',3,'12·10·8','Back'),
+      X('D','Chin-Ups',3,'AMRAP','Biceps & Back'),
+      X('E','Reverse Fly',3,'12·10·8','Rear delts'),
+      X('F','Military Press',3,'12·10·8','Shoulders'),
+      X('G','Shoulder Shrug',3,'12·10·8','Traps'),
+      X('H','Glute Bridge',2,'10','Glutes'),
+    ]},
+    fbSat:{banner:'FULL-BODY SATURDAY',motto:'FINISH STRONG',focus:'Chest & Core',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Flat Bench Press',3,'15·12·10','Chest'),
+      X('B','DB Incline Bench Press',3,'12·10·8','Chest'),
+      X('C','Narrow-Grip Bench Press',3,'12·10·8','Triceps & Chest'),
+      X('D','Bent-Over Row',3,'12·10·8','Back'),
+      X('E','Upright Row',3,'12·10·8','Back & Shoulders'),
+      X('F','Calf Raise',3,'12·10·8','Calves'),
+      BAR('CORE FINISHER — minimal rest'),
+      X('G','Reverse Crunch',1,'20','Core'),
+      X('H','Sit-Up',1,'20','Core'),
+      X('I','Leg Raise',1,'10','Core'),
+      X('J','Plank',1,'60 sec','Core'),
+    ]},
+    /* Upper/Lower (weeks 3–4) */
+    ulMon:{banner:'CHEST & TRICEPS',motto:'PRESS ON',focus:'Push',equipTags:['barbell','dumbbell','cable','bodyweight'],blocks:[
+      X('A','Flat Bench Press',4,'15·10·8·6','Chest'),
+      X('B','Incline Dumbbell Press',4,'12·10·8·6','Chest'),
+      X('C','Machine / Cable Fly',4,'12·10·8·6','Chest'),
+      X('D','Dumbbell Pullover',3,'12·10·8','Chest / Lats'),
+      X('E','Bar Dips',3,'AMRAP','Triceps'),
+      X('F','Triangle Push-Up',2,'AMRAP','Triceps'),
+      X('G','Skull Crushers',4,'12·10·8·6','Triceps'),
+      X('H','Rope Pushdown',4,'12·10·8·6','Triceps'),
+    ]},
+    ulTue:{banner:'QUADS & CALVES',motto:'LEG DAY LAW',focus:'Legs',equipTags:['barbell','machine','dumbbell'],blocks:[
+      X('A','Barbell Back Squat',3,'15·12·10','Quads'),
+      X('B','Machine Leg Press',3,'12·10·8','Quads'),
+      X('C','Leg Extension',3,'15·12·10','Quads'),
+      X('D','Dumbbell Lunges',3,'12·10·8','Quads'),
+      X('E','Sumo Squat',3,'12·10·8','Quads / inner'),
+      X('F','Calf Raise',3,'12·10·8','Calves'),
+    ]},
+    ulWed:{banner:'BACK & BICEPS',motto:'WIDER EVERY WEEK',focus:'Pull',equipTags:['barbell','cable','pullupbar','dumbbell'],blocks:[
+      X('A','Pull-Up / Assisted',3,'6–8','Back'),
+      X('B','Deadlift',3,'6·4·2','Back'),
+      X('C','Lat Pulldown',3,'12·10·8','Back'),
+      X('D','Seated Cable Row',3,'10·8·8','Back'),
+      X('E','Single-Arm DB Row',2,'10','Back'),
+      X('F','Barbell Curl',2,'10','Biceps'),
+      X('G','Concentration Curl',2,'10','Biceps'),
+      X('H','Preacher Curl',1,'Burnout','Biceps'),
+    ]},
+    ulFri:{banner:'HAMSTRINGS & GLUTES',motto:'POSTERIOR POWER',focus:'Legs',equipTags:['barbell','dumbbell','machine'],blocks:[
+      X('A','Barbell Good Morning',2,'10','Hamstrings'),
+      X('B','Dumbbell Step-Up',2,'10','Glutes'),
+      X('C','Hamstring Curl',2,'10','Hamstrings'),
+      X('D','Barbell RDL',3,'8·6·4','Hamstrings'),
+      X('E','Bulgarian Split Squat',2,'10','Glutes / quads'),
+      X('F','Barbell Hip Thrust',3,'12·10·8','Glutes'),
+    ]},
+    ulSat:{banner:'SHOULDERS & CORE',motto:'BOULDER SHOULDERS',focus:'Shoulders',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Military Press',3,'10·8·6','Shoulders'),
+      X('B','Front Raise',3,'10·8·6','Front delts'),
+      X('C','Lateral Raise',3,'10·8·6','Side delts'),
+      X('D','Rear Delt Fly',3,'10·8·6','Rear delts'),
+      X('E','Upright Row',3,'10·8·6','Shoulders / traps'),
+      BAR('CORE CIRCUIT'),
+      X('F','Reverse Crunch',2,'10','Core'),
+      X('G','Sit-Up',2,'10','Core'),
+      X('H','Leg Raise',2,'10','Core'),
+      X('I','Plank',1,'60 sec','Core'),
+    ]},
+    /* PPL (weeks 5–6) */
+    pplPush1:{banner:'PUSH DAY',motto:'PRESS TO IMPRESS',focus:'Push',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Flat Barbell Bench Press',3,'12·10·8','Chest'),
+      X('B','Incline DB Bench Press',3,'10·8·6','Chest'),
+      X('C','Bar Dips',3,'12·10·8','Triceps & Chest'),
+      X('D','Overhead Press',3,'10·8·6','Shoulders'),
+      X('E','Lateral Raise',3,'10·8·6','Side delts'),
+      X('F','Barbell Front Raise',3,'10·8·6','Front delts'),
+      X('G','Triceps Kickback',3,'10·8·6','Triceps'),
+    ]},
+    pplPull1:{banner:'PULL DAY',motto:'BACK IN BLACK',focus:'Pull',equipTags:['barbell','cable','pullupbar','dumbbell'],blocks:[
+      X('A','Pull-Up',3,'AMRAP','Back'),
+      X('B','Standard Deadlift',3,'6·4·2','Back & legs'),
+      X('C','Lat Pulldown',3,'12·10·8','Back'),
+      X('D','Seated Row',3,'10·8·8','Back'),
+      X('E','Face Pull',2,'10','Rear delts'),
+      X('F','Barbell Curl',2,'10','Biceps'),
+      X('G','Incline DB Curl',2,'10','Biceps'),
+      BAR('CORE'),
+      X('H','Mountain Climber',2,'30 sec','Core'),
+      X('I','Plank',2,'60 sec','Core'),
+    ]},
+    pplLegs1:{banner:'LEG DAY',motto:'NEVER SKIP',focus:'Legs',equipTags:['barbell','machine'],blocks:[
+      X('A','Lunges',2,'10','Quads'),
+      X('B','Barbell Back Squat',3,'15·12·10','Quads'),
+      X('C','Machine Leg Press',3,'15·12·10','Quads'),
+      X('D','Barbell RDL',3,'8·6·4','Hamstrings'),
+      X('E','Hamstring Curl',3,'10','Hamstrings'),
+      X('F','Barbell Hip Thrust',3,'10','Glutes'),
+      X('G','Calf Raise',3,'15·12·10','Calves'),
+    ]},
+    pplPush2:{banner:'PUSH DAY · II',motto:'SHARPEN THE EDGE',focus:'Push',equipTags:['barbell','dumbbell','cable','bodyweight'],blocks:[
+      X('A','Incline Barbell Bench Press',4,'12·10·8·6','Chest'),
+      X('B','Pec-Dec / Cable Fly',3,'12·10·8','Chest'),
+      X('C','DB Overhead Press',3,'10·8·6','Shoulders'),
+      X('D','Front Raise',3,'10·8·6','Front delts'),
+      X('E','Lateral Raise',3,'10·8·6','Side delts'),
+      X('F','Narrow-Grip Bench Press',3,'10·8·6','Triceps'),
+      X('G','Bench Dips',3,'10·8·6','Triceps'),
+    ]},
+    pplPull2:{banner:'PULL DAY · II',motto:'GRIP IT & RIP IT',focus:'Pull',equipTags:['barbell','cable','pullupbar'],blocks:[
+      X('A','Pull-Up',3,'AMRAP','Back'),
+      X('B','Lat Pulldown',3,'12·10·8','Back'),
+      X('C','Bent-Over Barbell Row',3,'10·8·8','Back'),
+      X('D','Seated Row',2,'10','Back'),
+      X('E','Cable Curl',2,'10','Biceps'),
+      X('F','Preacher Curl',2,'10','Biceps'),
+      BAR('CORE'),
+      X('G','Reverse Crunch',2,'15','Core'),
+      X('H','Leg Raise',2,'10','Core'),
+      X('I','Toe-Touch Crunch',2,'10','Core'),
+    ]},
+    pplLegs2:{banner:'LEG DAY · II',motto:'WHEELS OF STEEL',focus:'Legs',equipTags:['barbell','machine','dumbbell'],blocks:[
+      X('A','Dumbbell Step-Up',2,'10','Glutes'),
+      X('B','Barbell Jammers',3,'15·12·10','Quads'),
+      X('C','Machine Leg Press',3,'15·12·10','Quads'),
+      X('D','Leg Extension',3,'15·12·10','Quads'),
+      X('E','Hamstring Curl',3,'10','Hamstrings'),
+      X('F','Weighted Glute Bridge',3,'10','Glutes'),
+    ]},
+    /* Upper/Lower Combine (weeks 7–8 & 11–12) */
+    cmMon:{banner:'CHEST · GLUTES · CALVES',motto:'STACK THE WINS',focus:'Mixed',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Flat Bench Press',4,'15·10·8·6','Chest'),
+      X('B','Incline Dumbbell Press',4,'12·10·8·6','Chest'),
+      X('C','Machine / Cable Fly',3,'12·10·8','Chest'),
+      X('D','Dumbbell Pullover',3,'12·10·8','Chest / Lats'),
+      X('E','DB Step-Up',3,'AMRAP','Glutes'),
+      X('F','Barbell Hip Thrust',2,'AMRAP','Glutes'),
+      X('G','Calf Raise',4,'12·10·8·6','Calves'),
+    ]},
+    cmTue:{banner:'BACK & HAMSTRINGS',motto:'HINGE & HAUL',focus:'Pull',equipTags:['barbell','cable','pullupbar','dumbbell'],blocks:[
+      X('A','Pull-Up',3,'AMRAP','Back'),
+      X('B','Deadlift',3,'6·4·2','Back & legs'),
+      X('C','Lat Pulldown',4,'12·10·8·6','Back'),
+      X('D','Seated Cable Row',4,'10·8·8·6','Back'),
+      X('E','Single-Arm DB Row',2,'10','Back'),
+      X('F','Hamstring Curl',2,'10','Hamstrings'),
+      X('G','DB Good Morning',2,'10','Hamstrings'),
+      X('H','Dumbbell RDL',3,'8','Hamstrings'),
+    ]},
+    cmWed:{banner:'SHOULDERS & CORE',motto:'OVERHEAD OVERLOAD',focus:'Shoulders',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Military Press',3,'10·8·6','Shoulders'),
+      X('B','Front Raise',3,'10·8·6','Front delts'),
+      X('C','Lateral Raise',3,'10·8·6','Side delts'),
+      X('D','Rear Delt Fly',3,'10·8·6','Rear delts'),
+      X('E','Upright Row',3,'10·8·6','Traps'),
+      BAR('CORE CIRCUIT'),
+      X('F','Mountain Climber',2,'10','Core'),
+      X('G','DB Side Bend',2,'10','Obliques'),
+      X('H','Hanging Knee Raise',2,'10','Core'),
+      X('I','Plank',2,'60 sec','Core'),
+    ]},
+    cmThu:{banner:'QUADS · CALVES · ARMS',motto:'DRIVE THROUGH',focus:'Legs + Arms',equipTags:['barbell','machine','dumbbell','cable'],blocks:[
+      X('A','Barbell Back Squat',3,'15·12·10','Quads'),
+      X('B','Machine Leg Press',3,'12·10·8','Quads'),
+      X('C','Leg Extension',3,'15·12·10','Quads'),
+      X('D','Dumbbell Lunges',3,'12·10·8','Quads'),
+      X('E','Sumo Squat',3,'12·10·8','Inner thigh'),
+      X('F','Calf Raise',3,'12·10·8','Calves'),
+      BAR('ARM FINISHER · superset (added for balanced weekly volume)'),
+      X('G','EZ-Bar Curl',3,'10–12','Biceps'),
+      X('H','Rope Pushdown',3,'10–12','Triceps'),
+    ]},
+    cmFri:{banner:'CHEST · GLUTES · CALVES',motto:'REPEAT THE GRIND',focus:'Mixed',equipTags:['barbell','dumbbell','bodyweight'],blocks:[
+      X('A','Flat Bench Press',4,'12·10·8·6','Chest'),
+      X('B','Incline Bench Press',4,'12·10·8·6','Chest'),
+      X('C','Dumbbell Fly',3,'10·8·6','Chest'),
+      X('D','Bar Dips',3,'AMRAP','Triceps & Chest'),
+      X('E','Dumbbell RDL',3,'10·8·6','Hamstrings'),
+      X('F','Glute Bridge',3,'12·10·8','Glutes'),
+      X('G','Calf Raise',4,'12·10·8·6','Calves'),
+    ]},
+    cmSat:{banner:'BACK & SHOULDERS',motto:'LEAVE NOTHING',focus:'Pull',equipTags:['barbell','cable','pullupbar'],blocks:[
+      X('A','Pull-Up',3,'AMRAP','Back'),
+      X('B','Lat Pulldown',4,'12·10·8·6','Back'),
+      X('C','Seated Cable Row',4,'12·10·8·6','Back'),
+      X('D','Barbell T-Bar Row',4,'12·10·8·6','Back'),
+      X('E','Face Pull',3,'10','Rear delts'),
+      X('F','Upright Row',3,'10','Traps'),
+      X('G','Seated Reverse Fly',3,'10','Rear delts'),
+    ]},
+    /* Bro Split (weeks 9–10) */
+    broChest:{banner:'CHEST DAY',motto:'CHEST UP, CHIN UP',focus:'Chest',equipTags:['barbell','dumbbell','cable','bodyweight'],blocks:[
+      X('A','Barbell Flat Bench Press',5,'12·10·8·6·4','Chest'),
+      X('B','DB Incline Bench Press',3,'12·10·8','Chest'),
+      X('C','Incline Cable Fly',3,'10','Chest'),
+      X('D','Dumbbell Pullover',3,'10','Chest / Lats'),
+      X('E','Bar Dips',3,'AMRAP','Chest & Triceps'),
+      X('F','Dumbbell Squeeze Press',2,'10','Chest'),
+    ]},
+    broLegs:{banner:'LEG DAY',motto:'BUILD THE FOUNDATION',focus:'Legs',equipTags:['barbell','dumbbell','machine'],blocks:[
+      X('A','Dumbbell Lunges',2,'10','Quads'),
+      X('B','Barbell Back Squat',4,'15·12·10·8','Quads'),
+      X('C','Machine Leg Press',4,'15·12·10·8','Quads'),
+      X('D','Hamstring Curl',3,'12·10·8','Hamstrings'),
+      X('E','Dumbbell RDL',2,'8','Hamstrings'),
+      X('F','Barbell Hip Thrust',3,'12·10·8','Glutes'),
+      X('G','Calf Raise',3,'15·12·10','Calves'),
+    ]},
+    broBack:{banner:'BACK DAY',motto:'GROW THE WINGS',focus:'Back',equipTags:['barbell','cable','pullupbar'],blocks:[
+      X('A','Standard Deadlift',3,'AMRAP','Back & legs'),
+      X('B','Pull-Up',3,'AMRAP','Back'),
+      X('C','Lat Pulldown',4,'10·8·6·4','Back'),
+      X('D','T-Bar Row',4,'10·8·6·4','Back'),
+      X('E','Bent-Over Barbell Row',4,'10·8·6·4','Back'),
+      X('F','Seated Row',4,'10·8·6·4','Back'),
+      X('G','Face Pull',2,'10','Rear delts'),
+    ]},
+    broShoulder:{banner:'SHOULDER DAY',motto:'STAND TALL',focus:'Shoulders',equipTags:['barbell','dumbbell'],blocks:[
+      X('A','Military Press',4,'12·10·8·6','Shoulders'),
+      X('B','Dumbbell Front Raise',3,'10·10·8','Front delts'),
+      X('C','Lateral Raise',3,'10·10·8','Side delts'),
+      X('D','Bent-Over Rear Delt Fly',3,'10·10·8','Rear delts'),
+      X('E','Barbell Upright Row',3,'12·10·8','Traps'),
+      X('F','Shoulder Shrug',3,'12·10·8','Traps'),
+    ]},
+    broArmsBi:{banner:'BICEPS & CORE',motto:'CURLS FOR THE GIRLS',focus:'Arms',equipTags:['barbell','dumbbell','pullupbar'],blocks:[
+      X('A','Chin-Ups',3,'AMRAP','Biceps'),
+      X('B','Barbell Curl',4,'12·10·8·6','Biceps'),
+      X('C','Incline DB Curl',3,'10','Biceps'),
+      X('D','Concentration Curl',3,'10','Biceps'),
+      X('E','Preacher Curl',3,'10','Biceps'),
+      X('F','Wrist Curl',3,'10','Forearms'),
+      BAR('CORE'),
+      X('G','DB Side Bend',2,'10','Obliques'),
+      X('H','Hanging Knee Raise',2,'10','Core'),
+      X('I','Plank',2,'60 sec','Core'),
+    ]},
+    broArmsTri:{banner:'TRICEPS & CORE',motto:'HORSESHOES',focus:'Arms',equipTags:['barbell','dumbbell','cable','bodyweight'],blocks:[
+      X('A','Narrow-Grip Bench Press',3,'AMRAP','Triceps'),
+      X('B','Parallel Bar Dips',3,'15·12·10','Triceps'),
+      X('C','Skull Crusher',3,'15·12·10','Triceps'),
+      X('D','DB Overhead Extension',3,'10·8·6','Triceps'),
+      X('E','Rope Pushdown',3,'10·8·6','Triceps'),
+      X('F','Triceps Kickback',3,'10·8·6','Triceps'),
+      BAR('CORE'),
+      X('G','Russian Twist',2,'20 sec','Obliques'),
+      X('H','Crunches',2,'10','Core'),
+      X('I','Side Plank',1,'30s / side','Core'),
+    ]},
+  },
+},
+
+/* -------------------------------------------------- GAINS BY BRAINS 6 WK */
+{
+  id: 'gbb6',
+  name: 'Gains By Brains — 6 Week Fat Loss',
+  author: 'Gains By Brains',
+  goals: ['lose','recomp'],
+  equip: 'gym',
+  weeks: 6,
+  daysPerWeek: 4,
+  level: 'All levels',
+  blurb: '4 full-body lifting days + 2 LISS walks + a daily step goal. Tempo-controlled training to keep muscle in a deficit. Weeks 1–3 build the pattern; weeks 4–6 go heavier (6–8 reps).',
+  phases:[{weeks:[0,1,2],name:'Block A · 8–15 reps'},{weeks:[3,4,5],name:'Block B · heavier 6–8'}],
+  schedule(w,d){
+    const b = w<3 ? 'a':'b';
+    const map=[`fb1${b}`,`fb2${b}`,'liss',`fb3${b}`,`fb4${b}`,'liss',null];
+    return map[d];
+  },
+  stepGoals:[6000,8000,10000,11000,11500,12000],
+  days:{
+    fb1a:{banner:'FULL BODY · ONE',motto:'POSTERIOR PUSH',focus:'Glutes & Back',equipTags:['barbell','machine','cable','pullupbar'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + banded glute/hip circuit ×2'),
+      X('A','Deadstop Hip Thrust',4,'8–10','31X2 · reset bar each rep'),
+      X('B','Chin-Ups',4,'8–10','3111 · band-assist OK'),
+      X('C','Glute Kickbacks',3,'12–15 / side','20X1 · upright torso'),
+      X('D','Hyperextension',3,'10–12','2012 · round upper back'),
+      X('E','Cable Row',3,'12–15','3111 · elbows close'),
+      X('F','Face Pulls',3,'12–15','2112 · pull to ears'),
+    ]},
+    fb2a:{banner:'FULL BODY · TWO',motto:'QUADS & SHOULDERS',focus:'Quads & Delts',equipTags:['dumbbell','machine','bodyweight'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Bulgarian Split Squat',4,'8–10 / side','20X1 · upright'),
+      X('B','Leg Press',4,'8·10·12·15','30X1 · no lockout'),
+      X('C','Seated Dumbbell Press',4,'8–10','2010 · elbows tucked'),
+      X('D','Leg Extension',3,'10–12','30X2 · control negative'),
+      X('E','Seated Lateral Raises',3,'12–15','2011 · lead with elbows'),
+      X('F','Push-Ups',3,'8–10','20X0 · knees to modify'),
+    ]},
+    fb3a:{banner:'FULL BODY · THREE',motto:'HINGE & ROW',focus:'Hams & Back',equipTags:['barbell','machine','dumbbell','cable'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Barbell RDL',4,'8–10','3121 · hinge at hips'),
+      X('B','Hip Abduction',3,'12–15','2112 · slow reverse'),
+      X('C','V-Grip Pulldown',4,'8–10','20X1 · pull to chest'),
+      X('D','Seated Leg Curl',3,'10–12','3111 · flat back'),
+      X('E','Single-Arm DB Row',3,'10–12 / side','21X1 · lead with elbow'),
+      X('F','Rear Delt Fly',3,'12–15','2012'),
+    ]},
+    fb4a:{banner:'FULL BODY · FOUR',motto:'SQUAT & PRESS',focus:'Quads & Delts',equipTags:['machine','dumbbell','cable','bodyweight'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Hack Squat',4,'8–10','30X1 · brace core'),
+      X('B','Walking Lunges',3,'12 / side','20X0 · chest up'),
+      X('C','Seated Arnold Press',4,'8–10','2020 · rotate while pressing'),
+      X('D','Goblet Squat',3,'10–12','20X0 · push knees out'),
+      X('E','Cable Lateral Raises',3,'12–15 / side','20X2'),
+      X('F','Diamond Push-Up',3,'8–10','20X0'),
+    ]},
+    /* Block B — weeks 4–6, heavier */
+    fb1b:{banner:'FULL BODY · ONE',motto:'GO HEAVY',focus:'Posterior',equipTags:['barbell','cable','pullupbar'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + banded glute/hip circuit ×2'),
+      X('A','Barbell RDL',4,'6–8','3121 · retract blades'),
+      X('B','Continuous Hip Thrust',4,'8–10','2011 · bar stays off floor'),
+      X('C','Step-Up',3,'10–12 / side','4121 · push through heel'),
+      X('D','Straight-Arm Pulldown',4,'6–8','3121 · squeeze lats'),
+      X('E','Barbell Row',3,'10–12','2111 · neutral spine'),
+      X('F','Bent-Over Rear Delt Fly',3,'12–15','2011'),
+    ]},
+    fb2b:{banner:'FULL BODY · TWO',motto:'STRENGTH BLOCK',focus:'Quads & Delts',equipTags:['barbell','machine','dumbbell'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Squat',4,'6–8','21X1 · brace core'),
+      X('B','Split Squat',3,'12–15 / side','21X1 · Smith OK'),
+      X('C','Seated Arnold Press',4,'6–8','2020'),
+      X('D','Leg Extension',3,'12–15','30X2'),
+      X('E','Seated Front Raises',3,'10–12','2111 · to chin level'),
+      X('F','60° Incline Neutral Press',3,'10–12','2111'),
+    ]},
+    fb3b:{banner:'FULL BODY · THREE',motto:'OWN THE HINGE',focus:'Glutes & Back',equipTags:['barbell','machine','cable','dumbbell'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Glute Bridge',4,'6–8','21X2 · drive heels'),
+      X('B','Smith Sumo Squat',3,'10–12','3110 · wide stance'),
+      X('C','Lat Pulldown',4,'6–8','31X1 · slow eccentric'),
+      X('D','Seated Leg Curl',3,'12–15','30X1'),
+      X('E','Single-Arm DB Row',3,'10–12 / side','20X1'),
+      X('F','Face Pulls',3,'10–12','20X1'),
+    ]},
+    fb4b:{banner:'FULL BODY · FOUR',motto:'PRESS HEAVY',focus:'Quads & Delts',equipTags:['machine','barbell','dumbbell'],blocks:[
+      BAR('Warm-up · 5–10 min cardio + dynamic circuit ×2'),
+      X('A','Leg Press',4,'6–8','30X1 · feet flat'),
+      X('B','Lateral Squat',3,'10–12 / side','2011 · hips back'),
+      X('C','Overhead Press',4,'6–8','21X1 · press straight'),
+      X('D','Leg Extension',3,'12–15','30X2'),
+      X('E','Seated Lateral Raises',3,'10–12','20X1'),
+      X('F','Incline Dumbbell Press',3,'10–12','20X1'),
+    ]},
+    liss:{banner:'LISS CARDIO',motto:'WALK IT OUT',focus:'Cardio',equipTags:['cardio'],cardio:true,blocks:[
+      BAR('Low-intensity steady state'),
+      X('A','Incline Walk',1,'20–45 min','~5 km/h (3 mph). Duration rises each week: 20→25→30→35→40→45 min'),
+      X('B','Daily Steps',1,'Goal','Hit your weekly step target (see Today screen)'),
+    ]},
+  },
+},
+
+/* -------------------------------------------------- F/12 12 WEEK SHRED */
+{
+  id: 'f12',
+  name: 'F/12 — 12 Week Shred',
+  author: 'Flex Fitness',
+  goals: ['lose','recomp'],
+  equip: 'gym',
+  weeks: 12,
+  daysPerWeek: 5,
+  level: 'All levels',
+  blurb: '3 strength + 2 conditioning sessions per week, periodized in 3 blocks: Endurance (12–15) → Hypertrophy (8–12) → Strength (6–8). HIIT finishers torch fat.',
+  phases:[{weeks:[0,1,2,3],name:'Phase 1 · Endurance'},{weeks:[4,5,6,7],name:'Phase 2 · Hypertrophy'},{weeks:[8,9,10,11],name:'Phase 3 · Strength'}],
+  schedule(w,d){
+    const p = w<4?1:w<8?2:3;
+    const map=[`str${p}`,`con${p}`,`str${p}`,null,`str${p}`,`con${p}`,null];
+    return map[d];
+  },
+  days:{
+    str1:{banner:'STRENGTH · PHASE 1',motto:'ENDURE',focus:'Full Body · 12–15',equipTags:['barbell','dumbbell','kb','bench'],blocks:[
+      BAR('Warm-up · foam roll + dynamic stretch'),
+      X('A','BB Standing Shoulder Press',3,'12–15','45s rest'),
+      X('B','BB Squat',3,'12–15','45s rest'),
+      X('C','DB Chest Press',3,'12–15','45s rest'),
+      X('D','BB Bent-Over Row',3,'12–15','45s rest'),
+      X('E','DB Deadlift',3,'12–15','45s rest'),
+      X('F','DB Lunge',3,'12–15 / leg','45s rest'),
+      BAR('SUPERSET G — back-to-back'),
+      X('G1','BB Bicep Curl',3,'12–15',''),
+      X('G2','Bench Dips',3,'12–15',''),
+      BAR('FINISHER H — superset'),
+      X('H1','KB Swing',3,'15–20',''),
+      X('H2','Med Ball Crunch',3,'15–20',''),
+    ]},
+    str2:{banner:'STRENGTH · PHASE 2',motto:'BUILD',focus:'Full Body · 8–12',equipTags:['barbell','dumbbell','kb','pullupbar'],blocks:[
+      BAR('Warm-up · foam roll + dynamic stretch'),
+      X('A','BB Clean',3,'8–12','60s · fast'),
+      X('B','BB Front Squat',3,'8–12','60s'),
+      X('C','Incline DB Chest Press',3,'8–12','60s'),
+      X('D','Pull-Up / Lat Pulldown',3,'8–12','60s'),
+      X('E','BB Deadlift',3,'8–12','60s'),
+      X('F','BB Lunge',3,'8–12 / leg','60s'),
+      BAR('SUPERSET G'),
+      X('G1','DB Bicep Curl',3,'8–12',''),
+      X('G2','Press-Up',3,'8–12',''),
+      BAR('FINISHER H'),
+      X('H1','KB Single-Arm Swing',3,'15–20 / arm','30s'),
+      X('H2','Med Ball Kick',3,'16–20','30s'),
+    ]},
+    str3:{banner:'STRENGTH · PHASE 3',motto:'GET STRONG',focus:'Full Body · 6–8',equipTags:['barbell','dumbbell','kb','pullupbar'],blocks:[
+      BAR('Warm-up · foam roll + dynamic stretch'),
+      X('A','BB Clean & Press',3,'6–8','90s · fast'),
+      X('B','BB Front Squat',3,'6–8','90s'),
+      X('C','BB Chest Press',3,'6–8','90s'),
+      X('D','Pull-Up / Lat Pulldown',3,'6–8','90s'),
+      X('E','BB Romanian Deadlift',3,'6–8','90s'),
+      X('F','DB Split Squat',3,'6–8 / leg','90s'),
+      BAR('SUPERSET G'),
+      X('G1','BB Reverse Bicep Curl',3,'6–8',''),
+      X('G2','Tricep Press-Up',3,'6–8',''),
+      BAR('FINISHER H'),
+      X('H1','KB Alternating Swing',3,'15–20','30s'),
+      X('H2','Med Ball Double Leg Lift',3,'15–20','30s'),
+    ]},
+    con1:{banner:'CONDITIONING · P1',motto:'BURN',focus:'HIIT',equipTags:['cardio','kb','bodyweight'],cardio:true,blocks:[
+      BAR('Circuit · 6 sets · 20s work / 10s rest · AMRAP'),
+      X('A','Treadmill Sprints',6,'20s',''),
+      X('B','KB Swing',6,'20s',''),
+      X('C','Mountain Climber',6,'20s',''),
+      X('D','Squat Jump',6,'20s',''),
+      X('E','Press-Ups',6,'20s',''),
+      X('F','TRX Squat-to-Pull',6,'20s',''),
+      X('G','DB Reverse Lunge',6,'20s',''),
+      X('H','Bike Sprints',6,'20s',''),
+    ]},
+    con2:{banner:'CONDITIONING · P2',motto:'PUSH HARDER',focus:'HIIT',equipTags:['cardio','kb','bodyweight'],cardio:true,blocks:[
+      BAR('Circuit · 8 sets · 20s work / 10s rest · AMRAP'),
+      X('A','Treadmill Sprints',8,'20s',''),
+      X('B','KB Swing',8,'20s',''),
+      X('C','Mountain Climber',8,'20s',''),
+      X('D','Squat Jump',8,'20s',''),
+      X('E','Press-Ups',8,'20s',''),
+      X('F','TRX Squat-to-Pull',8,'20s',''),
+      X('G','DB Reverse Lunge',8,'20s',''),
+      X('H','Bike Sprints',8,'20s',''),
+    ]},
+    con3:{banner:'CONDITIONING · P3',motto:'NO QUIT',focus:'HIIT',equipTags:['cardio','kb','bodyweight'],cardio:true,blocks:[
+      BAR('Circuit · 8 sets · 20s work / 10s rest · AMRAP'),
+      X('A','Incline Treadmill Sprints',8,'20s','5–10% grade'),
+      X('B','KB Alternating Swing',8,'20s',''),
+      X('C','Burpee',8,'20s',''),
+      X('D','Tricep Press-Up',8,'20s',''),
+      X('E','Lunge Jump',8,'20s',''),
+      X('F','Rowing Sprints',8,'20s',''),
+      X('G','X-Body Mountain Climber',8,'20s',''),
+      X('H','Bike Sprints',8,'20s',''),
+    ]},
+  },
+},
+
+/* -------------------------------------------------- 8 WEEK SHRED (DB-friendly) */
+{
+  id: 'shred8',
+  name: '8 Week Shred',
+  author: "Gold's Gym",
+  goals: ['lose'],
+  equip: 'dumbbell',
+  weeks: 8,
+  daysPerWeek: 5,
+  level: 'All levels',
+  blurb: 'Two phases: Build the Base (heavy splits, weeks 1–4) then Trim the Fat (total-body circuits, weeks 5–8). Doable with dumbbells + a bench. Train every set near failure.',
+  phases:[{weeks:[0,1,2,3],name:'Phase 1 · Build the Base'},{weeks:[4,5,6,7],name:'Phase 2 · Trim the Fat'}],
+  schedule(w,d){
+    if(w<4){ // Phase 1 — simple repeating split
+      const map=['upper','lower','cardio','abs','upper','cardio',null];
+      return map[d];
+    }
+    const map=['c1','c2','cardio2','c3','c4','cardio2',null];
+    return map[d];
+  },
+  days:{
+    upper:{banner:'UPPER BODY',motto:'BUILD THE BASE',focus:'Upper',equipTags:['dumbbell','machine','bodyweight','bench'],blocks:[
+      X('A','Push-Ups',3,'20','Drop to knees to modify'),
+      X('B','Seated DB Overhead Press',3,'10','Rotate palms out, press up'),
+      X('C','Chest Fly',3,'10','Squeeze chest'),
+      X('D','Chest Press',3,'8','Near failure'),
+      X('E','Kneeling Tricep Kickback',3,'12','Elbow tight to side'),
+      X('F','Lat Pulldown',3,'10','Pull to chest'),
+      X('G','Tricep Dips',3,'8','Bench dips'),
+      X('H','Seated Upright Row',3,'10','Squeeze shoulder blades'),
+      X('I','Seated Bicep Curls',3,'10','Palms in at top'),
+      X('J','Rear Delt Fly',3,'10','Push back, slight bend'),
+    ]},
+    lower:{banner:'LOWER BODY',motto:'LEG DAY LAW',focus:'Lower',equipTags:['dumbbell','barbell','machine','bodyweight'],blocks:[
+      X('A','Weighted Walking Lunges',4,'18','Both legs = 1 rep'),
+      X('B','Leg Press',4,'10','Constant tension'),
+      X('C','Dumbbell Sumo Squats',4,'10','Wide stance, toes out'),
+      X('D','Barbell Deadlifts',4,'8','Flat back, tap floor'),
+      X('E','Leg Extensions',4,'10',''),
+      X('F','Back Extensions',4,'10','Return to neutral only'),
+      X('G','Hamstring Curls',4,'10','Heels to glutes'),
+      X('H','Calf Raises',4,'20','Hold 3s at top'),
+    ]},
+    abs:{banner:'ABS & CARDIO',motto:'CORE OF STEEL',focus:'Core',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('Add 30–45 min cardio after'),
+      X('A','Bicycles',4,'10','Both sides = 1 rep'),
+      X('B','Incline Sit-Ups',4,'10','Arms crossed on chest'),
+      X('C','Exercise Ball Crunches',4,'25','Lower back on ball'),
+      X('D','Dumbbell Side Bends',4,'20','Side to side'),
+      X('E','Leg Lifts',4,'10','No arching'),
+      X('F','Exercise Ball Pikes',4,'10','Pike to inverted V'),
+    ]},
+    cardio:{banner:'CARDIO',motto:'TALK-TEST PACE',focus:'Cardio',equipTags:['cardio'],cardio:true,blocks:[
+      BAR('Always 5-min warm-up + cool-down'),
+      X('A','Steady Cardio',1,'45 min','Incline walk / bike / elliptical / stairs'),
+      X('B','— or — Jog',1,'30 min','Treadmill'),
+      X('C','— or — Run/Walk Intervals',3,'Circuit','Walk 4m · run 1m fast · walk 3m · run 2m @80% · walk 2m · run 4m moderate'),
+    ]},
+    /* Phase 2 circuits — 4 rounds each */
+    c1:{banner:'CIRCUIT 1',motto:'TRIM THE FAT',focus:'Total Body',equipTags:['dumbbell','bodyweight','bench'],blocks:[
+      BAR('4 rounds · minimal rest'),
+      X('A','Standing DB Overhead Press',4,'15',''),
+      X('B','Butt Kicks',4,'30','Each heel = 1'),
+      X('C','Push-Ups',4,'20',''),
+      X('D','Ball DB Chest Press',4,'18','Hips in tabletop'),
+      X('E','Ball Tricep Kickback',4,'15',''),
+    ]},
+    c2:{banner:'CIRCUIT 2',motto:'KEEP MOVING',focus:'Total Body',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('4 rounds · minimal rest'),
+      X('A','DB Squat + Overhead Press',4,'15','Press on the way up'),
+      X('B','Bodyweight Walking Lunges',4,'25','Both legs = 1'),
+      X('C','Jump Squats',4,'18','Land soft'),
+      X('D','Ball Hamstring Curls',4,'10','Hips up'),
+      X('E','Bridge',4,'10','Squeeze 3s at top'),
+    ]},
+    c3:{banner:'CIRCUIT 3',motto:'EARN THE SWEAT',focus:'Core + Cardio',equipTags:['dumbbell','bodyweight','bench'],blocks:[
+      BAR('4 rounds · minimal rest'),
+      X('A','Plank',4,'3×30 sec','Rest between holds'),
+      X('B','Bicycles',4,'10','Both sides = 1'),
+      X('C','Burpees',4,'25','Knees-down push-up OK'),
+      X('D','Single-Leg DB Side Bends',4,'20','Balance on one foot'),
+      X('E','Exercise Ball Pikes',4,'10',''),
+    ]},
+    c4:{banner:'CIRCUIT 4',motto:'FINISH IT',focus:'Total Body',equipTags:['bodyweight','pullupbar','dumbbell'],blocks:[
+      BAR('4 rounds · minimal rest'),
+      X('A','Ice Skaters',4,'25','Both legs = 1'),
+      X('B','Pull-Ups',4,'12','Jump up + slow lower if needed'),
+      X('C','Side Plank',4,'3×15 sec','Drop knee to modify'),
+      X('D','Single-Leg Calf Raises',4,'25','Add DBs to progress'),
+      X('E','Side Lunge',4,'18',''),
+    ]},
+    cardio2:{banner:'CARDIO · P2',motto:'HIIT IT',focus:'Cardio',equipTags:['cardio','bodyweight'],cardio:true,blocks:[
+      BAR('Always 5-min warm-up + cool-down'),
+      X('A','Steady Cardio',1,'30 min','Incline walk / bike / elliptical / stairs'),
+      X('B','— or — HIIT',6,'Circuit','Jump rope 1m · rest 30s · 30 burpees · rest 30s · 30 jump squats · rest 1m · 30 jacks · rest 2m'),
+    ]},
+  },
+},
+
+/* -------------------------------------------------- GROWTH · 10 WK BODYBUILDING */
+{
+  id: 'growth',
+  name: 'GROWTH — 10 Week Bodybuilding',
+  author: 'Hannah Eden (HEF)',
+  goals: ['gain','recomp'],
+  equip: 'gym',
+  weeks: 10,
+  daysPerWeek: 5,
+  level: 'Intermediate',
+  blurb: 'Pure hypertrophy. A 5-day body-part split where every working set is 10 reps — and each week changes the rep STYLE (conventional → slow eccentric → 3s pause → pulsing → re-test) to hit the muscle a new way. Exercises switch for Phase 2.',
+  phases:[{weeks:[0,1,2,3,4],name:'Phase 1 · Weeks 1–5'},{weeks:[5,6,7,8,9],name:'Phase 2 · Weeks 6–10'}],
+  // signature mechanic: the week dictates HOW you do every rep
+  repStyles:[
+    {name:'Conventional · Test',detail:'Normal reps. Go heavy, log every set + how it felt — this is your baseline.'},
+    {name:'Slow Eccentric',detail:'3-second lowering on every rep. Max time under tension.'},
+    {name:'3-Second Pause',detail:'Pause 3s at the mid-point of every rep. Kills momentum.'},
+    {name:'Pulsing',detail:'Stay in the middle of the range and pulse. Constant tension, max fatigue.'},
+    {name:'Conventional · Re-Test',detail:'Repeat test week as heavy as possible — beat your Week 1 notes.'},
+    {name:'Conventional · Test',detail:'New phase, new lifts. Establish your Phase 2 baseline.'},
+    {name:'Slow Eccentric',detail:'3-second lowering on every rep.'},
+    {name:'3-Second Pause',detail:'Pause 3s at the mid-point of every rep.'},
+    {name:'Pulsing',detail:'Pulse in the middle of the range.'},
+    {name:'Conventional · Re-Test',detail:'Final test — go heavier than Week 6.'},
+  ],
+  // Mon Legs · Tue Chest · Wed Back · Thu rest · Fri Posterior · Sat Sh+Arms · Sun rest
+  schedule(w,d){
+    const p = w<5?1:2;
+    const map=[`p${p}legs`,`p${p}chest`,`p${p}back`,null,`p${p}post`,`p${p}arms`,null];
+    return map[d];
+  },
+  days:{
+    /* ---- Phase 1 ---- */
+    p1legs:{banner:'DAY 1 · LEGS',motto:'EARN YOUR LEGS',focus:'Legs · all sets ×10',equipTags:['barbell','machine','dumbbell'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Trap Bar Deadlifts',4,'10','Rest 1–2 min'),
+      X('2','Barbell Back Squats',4,'10',''),
+      X('3','High Box Step-Ups',3,'10 / leg',''),
+      X('4','Leg Extensions',3,'10',''),
+      X('5','Seated → Standing Calf Raises',3,'10',''),
+    ]},
+    p1chest:{banner:'DAY 2 · CHEST',motto:'BUILD THE ARMOR',focus:'Chest · all sets ×10',equipTags:['barbell','dumbbell','cable','bodyweight'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Barbell Flat Bench Press',4,'10',''),
+      X('2','Incline Dumbbell Chest Press',4,'10',''),
+      X('3','Incline Push-Ups',3,'10',''),
+      X('4','Standing Cable Flys',3,'10',''),
+      X('5','Dumbbell Pull-Overs',3,'10',''),
+    ]},
+    p1back:{banner:'DAY 3 · BACK',motto:'WIDEN THE WINGS',focus:'Back · all sets ×10',equipTags:['cable','machine','dumbbell','pullupbar'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Wide-Grip Lat Pulldown',4,'10',''),
+      X('2','Cable Seated Row',4,'10',''),
+      X('3','Inverted Incline DB Row',3,'10',''),
+      X('4','Chin-Ups',3,'10',''),
+      X('5','Standing Cable Reverse Flys',3,'10',''),
+    ]},
+    p1post:{banner:'DAY 4 · POSTERIOR CHAIN',motto:'POSTERIOR POWER',focus:'Glutes & Hams · all ×10',equipTags:['barbell','dumbbell','kb','cable','band'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Barbell Hip Thrusts',4,'10',''),
+      X('2','Stiff-Leg DB/KB Deadlift',4,'10',''),
+      X('3','DB/KB Bulgarian Split Squat',3,'10 / leg',''),
+      X('4','Standing Cable Kickback',3,'10 / side',''),
+      X('5','Banded Frog Pumps',3,'10–30','Reps rise weekly: 10·15·20·20·30'),
+    ]},
+    p1arms:{banner:'DAY 5 · SHOULDERS + ARMS',motto:'BOULDERS & GUNS',focus:'Delts & Arms · all ×10',equipTags:['dumbbell','cable'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','DB Seated Shoulder Press',4,'10',''),
+      X('2','Seated DB Hammer Curl',4,'10',''),
+      X('3','DB Upright Row',3,'10',''),
+      X('4','Standing DB Lateral Raises',3,'10',''),
+      X('5','Laying Face Pulls',3,'10',''),
+    ]},
+    /* ---- Phase 2 (new exercises) ---- */
+    p2legs:{banner:'DAY 1 · LEGS',motto:'NO WEAK LINKS',focus:'Legs · all sets ×10',equipTags:['barbell','machine'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Sumo-Stance Barbell Deadlift',4,'10',''),
+      X('2','Barbell Front Squat',4,'10',''),
+      X('3','Lateral Box Step-Up',3,'10 / leg',''),
+      X('4','Heels-Elevated Squat',3,'10',''),
+      X('5','Standing Calf Raises',3,'10',''),
+    ]},
+    p2chest:{banner:'DAY 2 · CHEST',motto:'FORGE THE PLATE',focus:'Chest · all sets ×10',equipTags:['dumbbell','barbell','cable','band','bodyweight'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','DB Flat Bench Press',4,'10',''),
+      X('2','Incline Barbell Chest Press',4,'10',''),
+      X('3','Decline Push-Ups',3,'10',''),
+      X('4','Low-to-High Cable Chest Fly',3,'10',''),
+      X('5','Resistance Band Pull-Over',3,'10',''),
+    ]},
+    p2back:{banner:'DAY 3 · BACK',motto:'BUILD THE BEAM',focus:'Back · all sets ×10',equipTags:['cable','machine','barbell','dumbbell','pullupbar'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Narrow Neutral-Grip Lat Pulldown',4,'10',''),
+      X('2','Single-Arm Bent-Over Row',4,'10 / side',''),
+      X('3','Bent-Over Barbell Row',3,'10',''),
+      X('4','Pull-Ups',3,'10',''),
+      X('5','Seated Bent-Over DB Reverse Flys',3,'10',''),
+    ]},
+    p2post:{banner:'DAY 4 · POSTERIOR CHAIN',motto:'HINGE & CONQUER',focus:'Glutes & Hams · all ×10',equipTags:['barbell','cable','band'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Banded Barbell Hip Thrusts',4,'10',''),
+      X('2','Stiff-Leg Wide-Stance Deadlifts',4,'10',''),
+      X('3','Barbell Bulgarian Split Squat',3,'10 / leg',''),
+      X('4','Kneeling Cable Kickback',3,'10 / side',''),
+      X('5','Banded Frog Pumps',3,'35–55','Reps rise weekly: 35·40·45·50·55'),
+    ]},
+    p2arms:{banner:'DAY 5 · SHOULDERS + ARMS',motto:'STEEL & THUNDER',focus:'Delts & Arms · all ×10',equipTags:['cable','barbell'],blocks:[
+      BAR('Warm-up · dynamic + 2–3 light sets of the first lift'),
+      X('1','Cable Standing Shoulder Press',4,'10',''),
+      X('2','Standing High Cable Curls',4,'10',''),
+      X('3','Barbell Upright Row',3,'10',''),
+      X('4','Cable Lateral Raises',3,'10',''),
+      X('5','Standing Cable Face Pulls',3,'10',''),
+    ]},
+  },
+},
+];
+
+/* ============================================================================
+   COACH'S TUNING — universal, evidence-based programming applied on TOP of every
+   packet, so each plan is optimized the same way (rest / tempo / progression),
+   not limited to whatever a single PDF happened to specify.
+   ========================================================================== */
+const REST_RULE = 'Compounds: heavy ≤6 reps → 2–3 min · 8–12 → 90s. Isolation/accessory → 45–75s. Supersets & circuits → minimal, rest after the pair.';
+const OVERLOAD = 'Double progression: stay at a weight until you hit the TOP of the rep range on every set with clean form, then add the smallest increment (2.5–5 lb) and rebuild. Log it here so you always beat last time.';
+const TUNING = {
+  growth: {
+    rest: REST_RULE,
+    tempo: 'Controlled ~2–3s lowering on every rep — except the week\'s rep-style (slow-eccentric / pause / pulse) overrides it. That weekly style is your intensity, so respect it.',
+    progression: 'Push the first two lifts (your 4×10) hardest. ' + OVERLOAD + ' On Test / Re-Test weeks go genuinely heavy and beat your logged numbers.',
+    notes: [
+      'Take your last 1–2 sets to within ~1–2 reps of failure — that\'s where growth lives.',
+      'Add 8–10 min of zone-2 cardio on rest days to stay lean while gaining.',
+    ],
+  },
+  transform12: {
+    rest: REST_RULE + ' (PDF only said 1–2 min — bumped for the heavy descending sets.)',
+    tempo: 'Lower under control (2–3s), drive up with intent. Descending reps (15·12·10·8) mean you ADD weight each set — not keep it the same.',
+    progression: OVERLOAD + ' Even weeks: repeat the prior week or swap a few lifts to keep the stimulus fresh.',
+    notes: [
+      'Hit AMRAP sets ~1–2 reps shy of failure so form holds.',
+      'Added direct arm work on the Quads/Calves day the PDF left thin — arms now get balanced volume across the week.',
+      'Rotate the split every 2 weeks as written; the variety is the point.',
+    ],
+  },
+  gbb6: {
+    rest: 'As written: 60–90s — take a full 2 min on the heavy 6–8-rep weeks (4–6).',
+    tempo: 'Follow the 4-digit tempo (e.g. 30X1 = 3s down, explode up) — controlled tempo is the whole design of this plan. Tempo over ego.',
+    progression: OVERLOAD + ' Only add load once you own the full range WITH the prescribed tempo.',
+    notes: [
+      'Steps + LISS rise every week — that rising NEAT is your fat-loss lever, not extra lifting.',
+      'Weeks 4–6 drop compounds to 6–8 reps: go meaningfully heavier.',
+    ],
+  },
+  f12: {
+    rest: 'P1 45s · P2 60s · P3 90s (rest grows as reps drop). Finishers/supersets stay short.',
+    tempo: 'Controlled reps on the main work; keep the KB swings & med-ball finishers fast and powerful.',
+    progression: 'Add load every phase as the rep range drops (12–15 → 8–12 → 6–8). The PDF leaves the weight column blank — log yours and beat it. ' + OVERLOAD,
+    notes: [
+      'The same template runs 3×/week — DON\'T do three identical days. Make one Heavy, one Moderate, one Rep-focus (undulating) so each session adds something.',
+      'Keep the 2 HIIT days — the strength + conditioning combo is what shreds.',
+    ],
+  },
+  shred8: {
+    rest: 'Phase 1 (heavy): compounds 90s–2 min, isolation ~60s. Phase 2 circuits: minimal rest, rest after each round.',
+    tempo: 'Controlled reps; hold the 3-second squeeze on calves, bridges and planks.',
+    progression: 'Phase 1: train every set near failure — if you finish the reps with gas left, add weight next time. Phase 2: progress by adding rounds / cutting rest (density). ' + OVERLOAD,
+    notes: [
+      'Phase 1 builds the muscle, Phase 2 strips the fat — don\'t skip the heavy phase.',
+      'Runs on dumbbells + a bench; swap any machine move with ↺.',
+      'Fixed the source\'s leg-curl / leg-extension mix-up so quads and hams are both covered.',
+    ],
+  },
+};
+PROGRAMS.forEach(p => { p.tuning = TUNING[p.id]; });
+
+/* ============================================================================
+   EXERCISE LIBRARY — for the trainer's "swap" feature.
+   Grouped by movement pattern; each move tagged with equipment needed.
+   ========================================================================== */
+const SWAPS = {
+  'Quads / Squat': [
+    {n:'Barbell Back Squat',e:['barbell']},{n:'Front Squat',e:['barbell']},
+    {n:'Goblet Squat',e:['dumbbell']},{n:'Dumbbell Squat',e:['dumbbell']},
+    {n:'Bulgarian Split Squat',e:['dumbbell','bodyweight']},{n:'Leg Press',e:['machine']},
+    {n:'Hack Squat',e:['machine']},{n:'Leg Extension',e:['machine']},
+    {n:'Walking Lunges',e:['dumbbell','bodyweight']},{n:'Wall Sit',e:['bodyweight']},
+    {n:'Jump Squat',e:['bodyweight']},{n:'Banded Squat',e:['band']},
+  ],
+  'Hamstrings / Hinge': [
+    {n:'Barbell RDL',e:['barbell']},{n:'Dumbbell RDL',e:['dumbbell']},
+    {n:'Hip Thrust',e:['barbell','dumbbell']},{n:'Glute Bridge',e:['bodyweight','dumbbell']},
+    {n:'Seated Leg Curl',e:['machine']},{n:'Hamstring Curl',e:['machine']},
+    {n:'Hyperextension',e:['bench','bodyweight']},{n:'Good Morning',e:['barbell']},
+    {n:'Banded Good Morning',e:['band']},{n:'Single-Leg Glute Bridge',e:['bodyweight']},
+  ],
+  'Vertical Push': [
+    {n:'Overhead Press',e:['barbell']},{n:'Seated DB Press',e:['dumbbell']},
+    {n:'Arnold Press',e:['dumbbell']},{n:'Lateral Raise',e:['dumbbell']},
+    {n:'Cable Lateral Raise',e:['cable']},{n:'Banded Overhead Press',e:['band']},
+    {n:'Pike Push-Up',e:['bodyweight']},{n:'Front Raise',e:['dumbbell']},
+  ],
+  'Horizontal Push': [
+    {n:'Flat Bench Press',e:['barbell','bench']},{n:'Incline DB Press',e:['dumbbell','bench']},
+    {n:'DB Chest Press',e:['dumbbell','bench']},{n:'Chest Press Machine',e:['machine']},
+    {n:'Cable Fly',e:['cable']},{n:'Push-Up',e:['bodyweight']},
+    {n:'Diamond Push-Up',e:['bodyweight']},{n:'Banded Chest Press',e:['band']},
+  ],
+  'Vertical Pull': [
+    {n:'Pull-Up',e:['pullupbar']},{n:'Chin-Up',e:['pullupbar']},
+    {n:'Lat Pulldown',e:['machine','cable']},{n:'Straight-Arm Pulldown',e:['cable']},
+    {n:'Single-Arm DB Row',e:['dumbbell']},{n:'Banded Pulldown',e:['band']},
+  ],
+  'Horizontal Pull': [
+    {n:'Barbell Row',e:['barbell']},{n:'Cable Row',e:['cable','machine']},
+    {n:'Single-Arm DB Row',e:['dumbbell']},{n:'T-Bar Row',e:['barbell']},
+    {n:'Face Pull',e:['cable']},{n:'Rear Delt Fly',e:['dumbbell']},
+    {n:'Inverted Row',e:['bodyweight']},{n:'Banded Row',e:['band']},
+  ],
+  'Biceps': [
+    {n:'Barbell Curl',e:['barbell']},{n:'Dumbbell Curl',e:['dumbbell']},
+    {n:'Hammer Curl',e:['dumbbell']},{n:'Cable Curl',e:['cable']},
+    {n:'Preacher Curl',e:['barbell','dumbbell']},{n:'Banded Curl',e:['band']},
+    {n:'Chin-Up',e:['pullupbar']},
+  ],
+  'Triceps': [
+    {n:'Skull Crusher',e:['barbell','dumbbell']},{n:'Rope Pushdown',e:['cable']},
+    {n:'Overhead Extension',e:['dumbbell']},{n:'Bench Dips',e:['bench','bodyweight']},
+    {n:'Bar Dips',e:['pullupbar','bodyweight']},{n:'Diamond Push-Up',e:['bodyweight']},
+    {n:'Banded Pushdown',e:['band']},{n:'Kickback',e:['dumbbell']},
+  ],
+  'Core': [
+    {n:'Plank',e:['bodyweight']},{n:'Hanging Knee Raise',e:['pullupbar']},
+    {n:'Leg Raise',e:['bodyweight']},{n:'Bicycle Crunch',e:['bodyweight']},
+    {n:'Russian Twist',e:['bodyweight','dumbbell']},{n:'Cable Crunch',e:['cable']},
+    {n:'Side Plank',e:['bodyweight']},{n:'Mountain Climber',e:['bodyweight']},
+  ],
+};
+
+/* ============================================================================
+   NUTRITION — calculators + targets straight from the guides
+   ========================================================================== */
+const NUTRITION = {
+  /* Mifflin–St Jeor BMR (recommended in Gains By Brains) */
+  bmr({sex, kg, cm, age}){
+    const base = 10*kg + 6.25*cm - 5*age;
+    return Math.round(sex==='male' ? base+5 : base-161);
+  },
+  activityFactors: {
+    sedentary:{f:1.2,  label:'Sedentary (desk job, little exercise)'},
+    light:    {f:1.375,label:'Lightly active (1–3 workouts/wk)'},
+    moderate: {f:1.55, label:'Moderately active (3–5 workouts/wk)'},
+    very:     {f:1.725,label:'Very active (6–7 workouts/wk)'},
+  },
+  /* goal -> calorie + macro strategy, sourced from the packets */
+  targets({goal, tdee, lb}){
+    let cals, note, proteinPerLb, fatPct;
+    if(goal==='lose'){
+      cals = Math.round(tdee*0.80);                 // ~20% deficit
+      proteinPerLb = 1.0;                            // GBB: up to ~1g/lb dieting
+      fatPct = 0.25;
+      note = '~20% deficit. Aim to lose 1–2 lb / week. Protein high to hold muscle.';
+    } else if(goal==='gain'){
+      cals = Math.round(tdee + 300);                // Lean Bulk: +200–400
+      proteinPerLb = 1.05;                           // ~2.3 g/kg
+      fatPct = 0.30;
+      note = '+300 kcal lean-bulk surplus (golden rule: +200–400). Expect ~0.5 lb/week.';
+    } else if(goal==='recomp'){
+      cals = Math.round(tdee);                       // maintenance
+      proteinPerLb = 1.1;
+      fatPct = 0.28;
+      note = 'Eat at maintenance, push protein + progressive overload to recomp slowly.';
+    } else {
+      cals = Math.round(tdee);
+      proteinPerLb = 0.9;
+      fatPct = 0.30;
+      note = 'Balanced maintenance for general health & performance.';
+    }
+    const protein = Math.round(lb*proteinPerLb);
+    const fat = Math.round((cals*fatPct)/9);
+    const carbs = Math.round((cals - protein*4 - fat*9)/4);
+    return { cals, protein, fat, carbs:Math.max(carbs,0), note,
+             fiber: goal==='gain'?30:25, water: goal==='gain'?3.0:2.0 };
+  },
+  rules: {
+    lose:[
+      'Sustained calorie deficit drives fat loss — no single food does it.',
+      'Protein every meal (palm-size). Fill half your plate with veg for satiety.',
+      'Weigh in 1×/week, same time. Target 0.5–2 lb down per week.',
+      'One free meal a week keeps you sane — 80/20 rule.',
+    ],
+    gain:[
+      '5 Golden Rules: +200–400 kcal · hit protein · progressive overload · 3 L water · 8–9 h sleep.',
+      'Protein target is non-negotiable; carb-to-fat ratio is flexible (≈40/30/30).',
+      'A little fat gain is normal on a lean bulk — that means you\'re eating enough.',
+      '30 g+ fiber a day to keep digestion happy on higher calories.',
+    ],
+    recomp:[
+      'Eat around maintenance; let the scale stay flat while strength climbs.',
+      'Keep protein very high (~1.1 g/lb) to build while staying lean.',
+      'Judge progress by the mirror, photos and lifts — not just the scale.',
+    ],
+    general:[
+      'Mostly whole foods, plenty of protein and veg, stay hydrated.',
+      'Move daily — aim for 8–10k steps.',
+      'Consistency beats perfection.',
+    ],
+  },
+};
+
+/* ============================================================================
+   RECIPE / MEAL LIBRARY — pulled from the guides (per-serving macros)
+   tag: cut | bulk | any   ·   meal: breakfast | lunch | dinner | snack
+   ========================================================================== */
+const RECIPES = [
+  // Gains By Brains (fat-loss friendly)
+  {n:'Turkish Eggs (Cilbir)',meal:'breakfast',tag:'cut',cal:390,p:28,c:11,f:26,src:'Gains By Brains'},
+  {n:'Yogurt Oat Vanilla Pancakes',meal:'breakfast',tag:'cut',cal:308,p:12,c:47,f:8,src:'Gains By Brains'},
+  {n:'Avocado Egg Salad on Toast',meal:'breakfast',tag:'cut',cal:377,p:17,c:30,f:21,src:'Gains By Brains'},
+  {n:'Matcha Chia Pudding',meal:'breakfast',tag:'cut',cal:384,p:10,c:41,f:20,src:'Gains By Brains'},
+  {n:'Garlic Parmesan Shrimp & Broccoli',meal:'lunch',tag:'cut',cal:234,p:26,c:10,f:10,src:'Gains By Brains'},
+  {n:'Grilled Chicken & Asparagus Pesto Pasta',meal:'lunch',tag:'cut',cal:433,p:22,c:48,f:17,src:'Gains By Brains'},
+  {n:'Creamy Zucchini Potato Soup',meal:'lunch',tag:'cut',cal:381,p:25,c:32,f:17,src:'Gains By Brains'},
+  {n:'Cheesy Herby Chicken Caprese w/ Rice',meal:'dinner',tag:'cut',cal:441,p:40,c:59,f:5,src:'Gains By Brains'},
+  {n:'Green Goddess Salad',meal:'dinner',tag:'cut',cal:432,p:17,c:19,f:32,src:'Gains By Brains'},
+  {n:'Roasted Chickpea Salad w/ Chicken',meal:'dinner',tag:'cut',cal:547,p:46,c:24,f:45,src:'Gains By Brains'},
+  {n:'Honey Vanilla Blueberry Frozen Yogurt',meal:'snack',tag:'cut',cal:272,p:20,c:48,f:0,src:'Gains By Brains'},
+  {n:'Creamy Avocado Deviled Eggs',meal:'snack',tag:'cut',cal:337,p:20,c:8,f:25,src:'Gains By Brains'},
+  {n:'Breakfast Cookies (×16)',meal:'snack',tag:'any',cal:159,p:5,c:19,f:7,src:'Gains By Brains'},
+  // Lean Bulking (high-calorie)
+  {n:'Cheesy Beef Bulking Omelette',meal:'breakfast',tag:'bulk',cal:811,p:62,c:7,f:58,src:'Lean Bulking'},
+  {n:'Spicy Chorizo Breakfast Hash',meal:'breakfast',tag:'bulk',cal:837,p:46,c:78,f:34,src:'Lean Bulking'},
+  {n:'Big Boy Breakfast Burrito',meal:'breakfast',tag:'bulk',cal:895,p:52,c:78,f:34,src:'Lean Bulking'},
+  {n:'Crispy Bulk-Up Protein Waffles',meal:'breakfast',tag:'bulk',cal:849,p:65,c:88,f:27,src:'Lean Bulking'},
+  {n:'Chocolate & Banana Pancakes',meal:'breakfast',tag:'bulk',cal:887,p:43,c:104,f:23,src:'Lean Bulking'},
+  {n:'Fully Loaded Breakfast Bagel',meal:'breakfast',tag:'bulk',cal:757,p:50,c:56,f:41,src:'Lean Bulking'},
+  // 8 Week Shred meal options (approx, clean)
+  {n:'Oats + Blueberries & Scrambled Eggs',meal:'breakfast',tag:'cut',cal:380,p:25,c:40,f:12,src:'8 Week Shred'},
+  {n:'Burrito Bowl (chicken, rice, beans)',meal:'lunch',tag:'any',cal:520,p:40,c:45,f:18,src:'8 Week Shred'},
+  {n:'Whole-Grain Turkey & Avocado Sandwich',meal:'lunch',tag:'any',cal:450,p:30,c:42,f:16,src:'8 Week Shred'},
+  {n:'Grilled Sirloin, Potato & Peppers',meal:'dinner',tag:'any',cal:520,p:42,c:35,f:20,src:'8 Week Shred'},
+  {n:'Salmon, Asparagus & Sweet Potato',meal:'dinner',tag:'cut',cal:480,p:38,c:34,f:20,src:'8 Week Shred'},
+  {n:'Turkey Burger (whole-grain bun)',meal:'dinner',tag:'any',cal:500,p:38,c:38,f:20,src:'8 Week Shred'},
+  {n:'Apple + 2 tbsp Peanut Butter',meal:'snack',tag:'any',cal:280,p:8,c:30,f:16,src:'8 Week Shred'},
+  {n:'Spicy Oven-Roasted Chickpeas',meal:'snack',tag:'cut',cal:230,p:10,c:30,f:8,src:'8 Week Shred'},
+];
+
+/* expose to app */
+window.FITDATA = { PROGRAMS, SWAPS, EQUIP, NUTRITION, RECIPES };
+})();
+
+</script>
+<script>
+/* ============================================================================
+   FitCoach app
+   ========================================================================== */
+const {PROGRAMS, SWAPS, EQUIP, NUTRITION, RECIPES} = window.FITDATA;
+const LB_PER_KG = 2.2046226;
+const $ = (id)=>document.getElementById(id);
+const prog = (id)=>PROGRAMS.find(p=>p.id===id);
+const isoLocal = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayISO = ()=> isoLocal(new Date());
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtDate = (d)=>`${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][(d.getDay()+6)%7]} · ${MON[d.getMonth()]} ${d.getDate()}`;
+
+/* ---- desk / at-work movement library (no equipment) ---- */
+const DESK=[
+  {n:'Chair Squats',short:'SQUATS',reps:'15 reps',d:'Stand up from your chair and sit back down under control. No hands.'},
+  {n:'Desk Push-Ups',short:'PUSH-UPS',reps:'12 reps',d:'Hands on the desk edge, body straight, lower your chest and press back up.'},
+  {n:'Calf Raises',short:'CALVES',reps:'20 reps',d:'Stand tall, rise onto your toes, lower slowly. Hold the desk for balance.'},
+  {n:'Seated Leg Raises',short:'LEG RAISE',reps:'12 / leg',d:'Sit tall, extend one leg straight out, hold 2s, lower. Alternate.'},
+  {n:'Glute Squeezes',short:'GLUTES',reps:'20 × 3s',d:'Sitting or standing, squeeze your glutes hard and hold 3 seconds.'},
+  {n:'Wall Sit',short:'WALL SIT',reps:'45 sec',d:'Back flat against the wall, thighs parallel to the floor, hold.'},
+  {n:'Desk Plank',short:'PLANK',reps:'40 sec',d:'Forearms on the desk, body in a straight line, brace your core.'},
+  {n:'Standing Knee Drives',short:'KNEES',reps:'30 sec',d:'Drive one knee up to hip height, alternate quickly, pump the arms.'},
+  {n:'Chair Dips',short:'DIPS',reps:'12 reps',d:'Hands on a sturdy chair edge, slide off, dip down and press up.'},
+  {n:'Shoulder Rolls + Neck Stretch',short:'MOBILITY',reps:'30 sec',d:'Roll shoulders back, then gently stretch the neck to each side.'},
+  {n:'Standing Side Bends',short:'SIDE BEND',reps:'10 / side',d:'Reach one arm overhead and bend to the opposite side for the obliques.'},
+  {n:'March in Place',short:'MARCH',reps:'60 sec',d:'March bringing knees high and pumping the arms to get the heart rate up.'},
+  {n:'Hip Flexor Stretch',short:'HIPS',reps:'30s / side',d:'Step into a small lunge, tuck the hips, feel the stretch. Switch sides.'},
+  {n:'Desk Mountain Climbers',short:'CLIMBERS',reps:'30 sec',d:'Hands on the desk, drive knees toward chest alternately, fast but controlled.'},
+];
+const WHEEL=[DESK[0],DESK[1],DESK[2],DESK[6],DESK[5],DESK[8],DESK[11],DESK[13]]; // 8 segments
+const fmt = (n)=> (Math.round(n*10)/10).toLocaleString();
+const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- persistence ---------- */
+const KEY='fitcoach.v1';
+let S = load();
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d) return d; }catch(e){}
+  return { profile:null, logs:{}, weights:[], food:{}, viewWeek:null };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* ---------- date / schedule helpers ---------- */
+function weekdayIdx(date){ return (date.getDay()+6)%7; } // Mon=0..Sun=6
+function currentWeek(){
+  if(!S.profile) return 0;
+  const start = new Date(S.profile.startDate+'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = Math.floor((now-start)/86400000);
+  const w = Math.floor(diff/7);
+  const p = prog(S.profile.programId);
+  return Math.max(0, Math.min(w, (p?p.weeks:12)-1));
+}
+const WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+/* ---------- the "trainer" — picks a program ---------- */
+const EQRANK={gym:3,dumbbell:2,minimal:1};
+function canDo(userEquip, progEquip){ return EQRANK[userEquip] >= EQRANK[progEquip]; }
+function recommend(p){
+  const order={lose:['gbb6','f12','shred8'],gain:['growth','transform12'],recomp:['gbb6','growth','transform12'],general:['transform12','gbb6']};
+  const list=order[p.goal]||['gbb6'];
+  let pick=list.find(id=>canDo(p.equip,prog(id).equip));
+  if(!pick){ const any=PROGRAMS.filter(x=>canDo(p.equip,x.equip)); pick = any.length?any[0].id : 'shred8'; }
+  return pick;
+}
+function whyPicked(p,id){
+  const pr=prog(id);
+  const goalTxt={lose:'fat loss',gain:'building muscle',recomp:'recomping',general:'general fitness'}[p.goal];
+  let s=`Based on your goal (${goalTxt}) and equipment (${EQUIP[p.equip].label.toLowerCase()}), I matched you to <b>${pr.name}</b>. `;
+  if(!canDo(p.equip,pr.equip)) s+=`It normally assumes more kit — tap any exercise to <b>swap</b> it for one you can do.`;
+  else s+=pr.blurb;
+  return s;
+}
+
+/* ============================================================================
+   ONBOARDING
+   ========================================================================== */
+let ob = {step:0, d:{sex:'male',activity:'moderate',goal:'lose',equip:'gym',days:5,unit:'imperial',ft:5,in:10,lb:180,goalLb:170,age:28,name:''}};
+function startOnboarding(){ ob={step:0,d:{...ob.d}}; renderOnboard(); }
+function renderOnboard(){
+  $('tabbar').classList.add('hide');
+  const steps=[obWelcome,obStats,obGoal,obEquip,obReview];
+  $('view').innerHTML = `<div class="stepwrap">${steps.map((_,i)=>`<div class="stepdot ${i<=ob.step?'on':''}"></div>`).join('')}</div>`
+    + `<div id="obc"></div>`;
+  steps[ob.step]();
+}
+function obSet(k,v){ ob.d[k]=v; renderOnboard(); }
+function obNext(){ ob.step++; renderOnboard(); }
+function obBack(){ ob.step--; renderOnboard(); }
+
+function obWelcome(){
+  $('obc').innerHTML = `
+  <div class="card">
+    <h2 style="font-size:26px;margin-bottom:8px">Hey 👋 I'm your coach.</h2>
+    <p class="hero">I'll build your training, diet and weight plan from your own workout packets — and lay every session out in the sheet style you like. First, a few quick things.</p>
+    <label class="fld"><span class="lab">What should I call you?</span>
+      <input id="i_name" placeholder="Your name" value="${esc(ob.d.name)}"></label>
+    <button class="btn" onclick="ob.d.name=$('i_name').value.trim();obNext()">Let's go →</button>
+  </div>`;
+}
+function obStats(){
+  const d=ob.d, imp=d.unit==='imperial';
+  $('obc').innerHTML = `
+  <div class="card">
+    <h3>About you</h3>
+    <div class="seg">
+      <button class="${imp?'on':''}" onclick="obSet('unit','imperial')">lb / ft</button>
+      <button class="${!imp?'on':''}" onclick="obSet('unit','metric')">kg / cm</button>
+    </div>
+    <div class="row">
+      <label class="fld"><span class="lab">Sex</span>
+        <select id="i_sex">${['male','female'].map(s=>`<option ${d.sex===s?'selected':''}>${s}</option>`).join('')}</select></label>
+      <label class="fld"><span class="lab">Age</span><input id="i_age" inputmode="numeric" value="${d.age}"></label>
+    </div>
+    ${imp?`
+    <div class="row">
+      <label class="fld"><span class="lab">Height ft</span><input id="i_ft" inputmode="numeric" value="${d.ft}"></label>
+      <label class="fld"><span class="lab">in</span><input id="i_in" inputmode="numeric" value="${d.in}"></label>
+    </div>
+    <div class="row">
+      <label class="fld"><span class="lab">Weight (lb)</span><input id="i_lb" inputmode="decimal" value="${d.lb}"></label>
+      <label class="fld"><span class="lab">Goal weight (lb)</span><input id="i_goal" inputmode="decimal" value="${d.goalLb}"></label>
+    </div>`:`
+    <label class="fld"><span class="lab">Height (cm)</span><input id="i_cm" inputmode="numeric" value="${Math.round(((d.ft*12)+ +d.in)*2.54)}"></label>
+    <div class="row">
+      <label class="fld"><span class="lab">Weight (kg)</span><input id="i_kg" inputmode="decimal" value="${Math.round(d.lb/LB_PER_KG)}"></label>
+      <label class="fld"><span class="lab">Goal (kg)</span><input id="i_goalkg" inputmode="decimal" value="${Math.round(d.goalLb/LB_PER_KG)}"></label>
+    </div>`}
+    <label class="fld"><span class="lab">How active are you day-to-day?</span>
+      <select id="i_act">${Object.entries(NUTRITION.activityFactors).map(([k,v])=>`<option value="${k}" ${d.activity===k?'selected':''}>${v.label}</option>`).join('')}</select></label>
+    <div class="btnrow"><button class="btn ghost" onclick="obBack()">Back</button>
+      <button class="btn" onclick="saveStats()">Next →</button></div>
+  </div>`;
+}
+function saveStats(){
+  const d=ob.d; d.sex=$('i_sex').value; d.age=+$('i_age').value||28; d.activity=$('i_act').value;
+  if(d.unit==='imperial'){ d.ft=+$('i_ft').value||5; d.in=+$('i_in').value||0; d.lb=+$('i_lb').value||180; d.goalLb=+$('i_goal').value||d.lb; }
+  else { const cm=+$('i_cm').value||178; d.ft=Math.floor(cm/2.54/12); d.in=Math.round(cm/2.54-d.ft*12);
+    d.lb=Math.round((+$('i_kg').value||80)*LB_PER_KG); d.goalLb=Math.round((+$('i_goalkg').value||75)*LB_PER_KG); }
+  obNext();
+}
+function obGoal(){
+  const d=ob.d;
+  const goals=[['lose','Lose weight / cut','Calorie deficit, keep muscle'],
+    ['gain','Build muscle / bulk','Lean surplus + progressive overload'],
+    ['recomp','Recomp / stay lean','Maintain, build strength slowly'],
+    ['general','General fitness','Balanced training & habits']];
+  $('obc').innerHTML=`
+  <div class="card">
+    <h3>Your main goal</h3>
+    <div class="chips" style="flex-direction:column">
+    ${goals.map(([k,t,s])=>`<button class="chip ${d.goal===k?'on':''}" style="text-align:left;min-width:100%" onclick="obSet('goal','${k}')">
+      <b style="font-size:15px">${t}</b><br><span style="font-weight:600;font-size:12px;opacity:.8">${s}</span></button>`).join('')}
+    </div>
+    <label class="fld" style="margin-top:14px"><span class="lab">Training days per week</span>
+      <select id="i_days">${[3,4,5,6].map(n=>`<option ${d.days===n?'selected':''}>${n}</option>`).join('')}</select></label>
+    <div class="btnrow"><button class="btn ghost" onclick="obBack()">Back</button>
+      <button class="btn" onclick="ob.d.days=+$('i_days').value;obNext()">Next →</button></div>
+  </div>`;
+}
+function obEquip(){
+  const d=ob.d;
+  $('obc').innerHTML=`
+  <div class="card">
+    <h3>What can you train with?</h3>
+    <p class="hero" style="margin-bottom:12px">I'll program around this — and let you swap any move you can't do.</p>
+    <div class="chips" style="flex-direction:column">
+    ${Object.entries(EQUIP).map(([k,v])=>`<button class="chip ${d.equip===k?'on':''}" style="text-align:left;min-width:100%" onclick="obSet('equip','${k}')">
+      <b style="font-size:15px">${v.label}</b></button>`).join('')}
+    </div>
+    <div class="btnrow" style="margin-top:6px"><button class="btn ghost" onclick="obBack()">Back</button>
+      <button class="btn" onclick="obNext()">Next →</button></div>
+  </div>`;
+}
+function obReview(){
+  const d=ob.d; const id=recommend(d); const pr=prog(id);
+  $('obc').innerHTML=`
+  <div class="card">
+    <h3>Your coach's plan</h3>
+    <div class="sheet" style="margin-bottom:14px">
+      <div class="banner">YOUR PROGRAM</div>
+      <div class="motto" style="font-size:26px;padding:12px 8px">${esc(pr.name)}</div>
+    </div>
+    <p class="hero">${whyPicked(d,id)}</p>
+    <div class="kv"><span class="k">Goal</span><b>${({lose:'Lose / cut',gain:'Build muscle',recomp:'Recomp',general:'General'})[d.goal]}</b></div>
+    <div class="kv"><span class="k">Length</span><b>${pr.weeks} weeks · ${pr.daysPerWeek} days/wk</b></div>
+    <div class="kv"><span class="k">Equipment</span><b>${EQUIP[d.equip].label}</b></div>
+    <div class="kv"><span class="k">Start weight → goal</span><b>${d.lb} → ${d.goalLb} lb</b></div>
+    <button class="btn" style="margin-top:16px" onclick="finishOnboard('${id}')">Start training 💪</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="obBack()">Back</button>
+  </div>`;
+}
+function finishOnboard(id){
+  const d=ob.d;
+  S.profile={name:d.name,sex:d.sex,age:d.age,heightCm:Math.round((d.ft*12+ +d.in)*2.54),
+    weightLb:d.lb,goalLb:d.goalLb,activity:d.activity,goal:d.goal,equip:d.equip,days:d.days,
+    programId:id,startDate:todayISO(),unit:d.unit};
+  if(!S.weights.length) S.weights=[{d:todayISO(),w:d.lb}];
+  S.swaps=S.swaps||{};
+  save(); go('today');
+}
+
+/* ============================================================================
+   NAVIGATION
+   ========================================================================== */
+let TAB='today';
+const TABS=[['today','Today','🏠'],['train','Train','🏋️'],['eat','Eat','🥗'],['weigh','Weigh','⚖️'],['move','Move','🤸'],['coach','Coach','🧠']];
+function go(tab){ TAB=tab; render(); window.scrollTo(0,0); }
+function renderTabs(){
+  $('tabbar').classList.remove('hide');
+  $('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button class="${TAB===k?'on':''}" onclick="go('${k}')">
+    <span class="ic">${i}</span>${l}</button>`).join('');
+}
+function render(){
+  if(!S.profile){ startOnboarding(); return; }
+  // self-heal: if a stale/old saved profile points at a program that no longer exists,
+  // re-pick one instead of hard-crashing on a blank screen.
+  if(!prog(S.profile.programId)){ S.profile.programId=recommend(S.profile); save(); }
+  renderTabs();
+  try{
+    ({today:viewToday,train:viewTrain,eat:viewEat,weigh:viewWeigh,move:viewMove,coach:viewCoach}[TAB]||viewToday)();
+  }catch(err){
+    console.error('render error',err);
+    $('view').innerHTML=`<div class="card"><h3>Something glitched</h3>
+      <p class="hero">Hit reset and your plan will rebuild from your saved info.</p>
+      <button class="btn" style="margin-top:10px" onclick="go('today')">Reload</button>
+      <button class="btn ghost" style="margin-top:9px" onclick="location.reload()">Hard refresh</button></div>`;
+  }
+}
+const App={ headerAction(){ if(!S.profile){startOnboarding();return;} go('coach'); } };
+
+/* ============================================================================
+   TODAY
+   ========================================================================== */
+function viewToday(){
+  const p=S.profile, pr=prog(p.programId), w=currentWeek(), wd=weekdayIdx(new Date());
+  const dayId=pr.schedule(w,wd), day=dayId?pr.days[dayId]:null;
+  const phase=(pr.phases||[]).find(ph=>ph.weeks.includes(w));
+  const hour=new Date().getHours();
+  const hi = hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  const t=dietTargets(); const eaten=foodTotals(todayISO());
+  const lw=S.weights[S.weights.length-1];
+
+  let dayCard;
+  if(day){
+    dayCard=`<div class="card" style="padding:0;overflow:hidden">
+      ${sheetHTML(pr,dayId,w,true)}
+      <div style="padding:14px"><button class="btn" onclick="go('train')">Open & log workout →</button></div>
+    </div>`;
+  } else {
+    dayCard=`<div class="card"><h3>Today</h3>
+      <div class="empty">🧘 Rest day — recover, hit your steps, eat well.</div></div>`;
+  }
+
+  $('view').innerHTML=`
+  <div class="card" style="background:linear-gradient(135deg,#15294f,#0d1422)">
+    <div class="muted" style="font-size:12px;font-weight:700">${hi}${p.name?', '+esc(p.name):''}</div>
+    <h2 style="font-size:22px;margin:3px 0 2px">${day?esc(day.banner):'Rest Day'}</h2>
+    <div class="muted" style="font-size:13px">${esc(pr.name)} · Week ${w+1}/${pr.weeks}${phase?' · '+esc(phase.name):''} · ${WD[wd]}</div>
+  </div>
+
+  ${dayCard}
+
+  ${pr.stepGoals?`<div class="card"><h3>Step goal · week ${w+1}</h3>
+    <div class="big">${pr.stepGoals[w].toLocaleString()} <span style="font-size:14px" class="muted">steps</span></div></div>`:''}
+
+  <div class="card"><h3>Today's nutrition</h3>
+    <div class="row" style="margin-bottom:6px">
+      <div><div class="big">${eaten.cal}</div><div class="muted" style="font-size:12px">of ${t.cals} kcal</div></div>
+      <div style="text-align:right;align-self:center">
+        <span class="pill ${eaten.cal>t.cals?'warn':'acc'}">${t.cals-eaten.cal>=0?(t.cals-eaten.cal)+' left':Math.abs(t.cals-eaten.cal)+' over'}</span></div>
+    </div>
+    ${macroBar('Protein',eaten.p,t.protein,'#b4ff3d')}
+    ${macroBar('Carbs',eaten.c,t.carbs,'#7ee0ff')}
+    ${macroBar('Fat',eaten.f,t.fat,'#ff8a5b')}
+    <button class="btn sec" style="margin-top:11px" onclick="go('eat')">Log food</button>
+  </div>
+
+  <div class="card"><h3>Weight</h3>
+    <div class="row">
+      <div><div class="big">${lw?fmt(lw.w):'—'}<span style="font-size:14px" class="muted"> lb</span></div>
+        <div class="muted" style="font-size:12px">goal ${p.goalLb} lb · ${weightDeltaText()}</div></div>
+      <div style="align-self:center;text-align:right"><button class="btn sec" style="width:auto;padding:11px 16px" onclick="go('weigh')">Log</button></div>
+    </div>
+  </div>`;
+}
+function macroBar(name,have,goal,col){
+  const pct=Math.min(100,goal?have/goal*100:0);
+  return `<div class="macrobar"><div class="top"><span>${name}</span><span class="muted">${have} / ${goal} g</span></div>
+    <div class="track"><span style="width:${pct}%;background:${col}"></span></div></div>`;
+}
+
+/* ============================================================================
+   TRAIN  — the Grit sheet with set logging
+   ========================================================================== */
+/* build a dated session for every calendar day of the program */
+function buildSessions(pr){
+  const start=new Date(S.profile.startDate+'T00:00:00');
+  const out=[];
+  for(let i=0;i<pr.weeks*7;i++){
+    const dt=new Date(start); dt.setDate(start.getDate()+i);
+    const w=Math.floor(i/7), wd=weekdayIdx(dt);
+    const dayId=pr.schedule(w,wd);
+    out.push({iso:isoLocal(dt), date:dt, w, wd, dayId, isRest:!dayId});
+  }
+  return out;
+}
+function sessionStatus(pr,w,dayId){
+  const log=(S.logs[pr.id]||{})[w]&&S.logs[pr.id][w][dayId];
+  const total=pr.days[dayId].blocks.filter(b=>!b.bar).length;
+  if(!log) return {done:0,total,any:false};
+  let done=0; Object.values(log).forEach(sets=>{ if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
+  return {done,total,any:done>0};
+}
+function viewTrain(){
+  const pr=prog(S.profile.programId);
+  const sessions=buildSessions(pr);
+  const today=todayISO();
+  // auto-open today's session each new calendar day, but respect manual toggles within the day
+  if(S._trainDay!==today){ S._trainDay=today; S.openSessions=[today]; S.showPast=false; }
+  if(!S.openSessions) S.openSessions=[today];
+
+  const past=sessions.filter(s=>s.iso<today);
+  const todays=sessions.filter(s=>s.iso===today);
+  const future=sessions.filter(s=>s.iso>today);
+  const programOver = todays.length===0 && future.length===0;
+
+  const pastTrained=past.filter(s=>!s.isRest);
+  const phase=(pr.phases||[]).find(ph=>todays[0]&&ph.weeks.includes(todays[0].w));
+
+  $('view').innerHTML=`
+  <div class="card" style="padding:13px">
+    <h2 style="font-size:18px">${esc(pr.name)}</h2>
+    <div class="muted" style="font-size:12px">${esc(fmtDate(new Date()))}${todays[0]?` · Week ${todays[0].w+1}/${pr.weeks}`:''}${phase?' · '+esc(phase.name):''}</div>
+  </div>
+
+  ${pastTrained.length?`<button class="btn ghost" style="margin-bottom:13px" onclick="S.showPast=!S.showPast;save();viewTrain()">
+    ${S.showPast?'▲ Hide past sessions':`▼ Show past sessions (${pastTrained.length})`}</button>`:''}
+  ${S.showPast?past.map(s=>sessionCard(pr,s,today)).join(''):''}
+
+  ${programOver?`<div class="card"><div class="empty">🏁 Program complete — nice work! Pick a new plan from the Coach tab, or restart this one.</div></div>`
+    : `<div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.12em;margin:4px 4px 8px;color:var(--accent)">TODAY</div>
+       ${todays.map(s=>sessionCard(pr,s,today)).join('')}
+       ${future.length?`<div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.12em;margin:18px 4px 8px">UPCOMING</div>`:''}
+       ${future.map(s=>sessionCard(pr,s,today)).join('')}`}
+
+  ${tuningCard(pr)}
+  `;
+}
+function sessionCard(pr,s,today){
+  const isToday=s.iso===today, isPast=s.iso<today;
+  const dateLabel=fmtDate(s.date);
+  if(s.isRest){
+    return `<div class="card sess" style="padding:11px 14px;display:flex;align-items:center;gap:10px;opacity:${isPast?'.5':'.75'}">
+      <span style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);min-width:96px">${dateLabel.toUpperCase()}</span>
+      <span class="muted" style="font-size:13px">🧘 Rest day</span></div>`;
+  }
+  const day=pr.days[s.dayId];
+  const open=(S.openSessions||[]).includes(s.iso);
+  const st=sessionStatus(pr,s.w,s.dayId);
+  let badge='';
+  if(isToday) badge='<span class="pill acc">TODAY</span>';
+  else if(isPast) badge = st.any?`<span class="pill" style="background:rgba(74,222,128,.15);color:var(--good)">✓ ${st.done}/${st.total}</span>`:'<span class="pill" style="background:var(--panel2);color:var(--dim)">missed</span>';
+  else badge='<span class="pill blue">upcoming</span>';
+
+  const header=`<div onclick="toggleSession('${s.iso}')" style="display:flex;align-items:center;gap:11px;cursor:pointer;padding:13px 14px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.07em;color:${isToday?'var(--accent)':'var(--muted)'}">${dateLabel.toUpperCase()} · WK ${s.w+1}</div>
+      <div style="font-weight:800;font-size:15px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(day.banner)}</div>
+      <div class="muted" style="font-size:12px">${esc(day.focus||'')}</div>
+    </div>
+    ${badge}
+    <span style="color:var(--dim);font-size:13px">${open?'▲':'▼'}</span>
+  </div>`;
+
+  return `<div class="card sess" style="padding:0;overflow:hidden;${isToday?'border-color:var(--accent)':''}">
+    ${header}
+    ${open?`<div style="padding:0 0 0 0">${sheetHTML(pr,s.dayId,s.w,false)}</div>`:''}
+  </div>`;
+}
+function toggleSession(iso){
+  S.openSessions=S.openSessions||[];
+  const i=S.openSessions.indexOf(iso);
+  if(i>=0) S.openSessions.splice(i,1); else S.openSessions.push(iso);
+  save(); viewTrain();
+}
+function tuningCard(pr){
+  const t=pr.tuning; if(!t) return '';
+  const open=S.showTuning;
+  const block=(lab,txt)=>`<div style="margin-bottom:11px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;margin-bottom:3px">${lab}</div>
+    <div class="hero" style="font-size:12.5px">${esc(txt)}</div></div>`;
+  return `<div class="card" style="border-color:#2c3f22;background:linear-gradient(180deg,#141a10,#12161f);margin-top:18px">
+    <div onclick="S.showTuning=!S.showTuning;save();viewTrain()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+      <h3 style="color:var(--accent);margin:0">⚙︎ Coach's tuning</h3>
+      <span style="color:var(--dim)">${open?'▲':'▼'}</span></div>
+    ${open?`<p class="hero" style="margin:11px 0 13px;font-size:12px">Best-practice programming applied on top of the packet — the same standard across every plan, not just what one PDF specified.</p>
+    ${block('Rest',t.rest)}${block('Tempo',t.tempo)}${block('Progression',t.progression)}
+    <div style="border-top:1px solid var(--line);margin-top:4px">
+    ${t.notes.map(n=>`<div class="listitem" style="padding:8px 0"><span class="tagdot" style="background:var(--accent)"></span><div class="t" style="font-size:12.5px">${esc(n)}</div></div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+
+function logFor(pid,w,dayId){
+  S.logs[pid]=S.logs[pid]||{}; S.logs[pid][w]=S.logs[pid][w]||{};
+  S.logs[pid][w][dayId]=S.logs[pid][w][dayId]||{};
+  return S.logs[pid][w][dayId];
+}
+function swapKey(pid,dayId,exIdx){ return `${pid}.${dayId}.${exIdx}`; }
+function exName(pr,dayId,exIdx,orig){ const k=swapKey(pr.id,dayId,exIdx); return (S.swaps&&S.swaps[k])||orig; }
+
+/* parse a reps spec into a per-set target {label, def(number|null)} */
+function numFrom(p){
+  const m=String(p).toLowerCase().replace(/–/g,'-').trim();
+  if(/amrap|circuit|goal|min|sec/.test(m)) return null;     // effort/time based
+  if(/^\d+\s*s$/.test(m)) return null;                       // "20s"
+  const range=m.match(/(\d+)\s*-\s*(\d+)/);
+  if(range) return parseInt(range[2]);                       // range -> top as goal
+  const n=m.match(/\d+/);
+  return n?parseInt(n[0]):null;
+}
+function repTargets(repsStr,nSets){
+  const s=String(repsStr).trim();
+  const parts = /[·,]/.test(s) ? s.split(/[·,]/).map(x=>x.trim()) : null;
+  return Array.from({length:nSets},(_,i)=>{
+    const lab = parts ? (parts[i]!=null?parts[i]:parts[parts.length-1]) : s;
+    return {label:lab, def:numFrom(lab)};
+  });
+}
+function sheetHTML(pr,dayId,w,compact){
+  const day=pr.days[dayId]; const log=logFor(pr.id,w,dayId);
+  const maxSets=Math.max(3,...day.blocks.filter(b=>!b.bar).map(b=>+b.sets||3));
+  let exIdx=-1;
+  const rows=day.blocks.map(b=>{
+    if(b.bar) return `<tr><td class="gbar" colspan="${maxSets+3}">${esc(b.bar)}</td></tr>`;
+    exIdx++; const ei=exIdx;
+    const nSets=+b.sets||3;
+    const name=exName(pr,dayId,ei,b.name);
+    const sets=log[ei]||[];
+    const tgts=repTargets(b.reps,nSets);
+    const cells=[];
+    for(let s=0;s<maxSets;s++){
+      if(s<nSets){
+        const v=sets[s]||{};
+        const t=tgts[s];
+        const done=v.done?'done':'';
+        // rep box comes PRE-FILLED with the prescribed reps; user only adds weight
+        const repVal = v.reps!=null ? v.reps : (t.def!=null ? t.def : '');
+        const repPh  = t.def!=null ? 'rep' : esc(t.label);
+        const defAttr= t.def!=null ? t.def : '';
+        cells.push(`<td class="gx-set"><span class="tgt">${esc(t.label)}</span>
+          <div class="ins">
+            <input class="${done}" inputmode="decimal" placeholder="wt" value="${v.wt??''}"
+              onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'wt','${defAttr}')">
+            <input class="${done}" inputmode="numeric" placeholder="${repPh}" value="${repVal}"
+              onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'reps','')">
+          </div></td>`);
+      } else cells.push(`<td class="gx-set" style="background:#0a0d14"></td>`);
+    }
+    const cat=guessCat(name,b.note);
+    return `<tr>
+      <td class="gx-tag">${esc(b.tag||'')}</td>
+      <td class="gx-name"><div class="nm">${esc(name)}</div>${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
+        <span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}')">↺ swap</span></td>
+      ${cells.join('')}
+      <td class="gx-note">${esc(b.note||'')}</td></tr>`;
+  }).join('');
+
+  const setHdr=Array.from({length:maxSets},(_,i)=>`<th class="seth">SET ${i+1}</th>`).join('');
+  const setW=66, tableW=28+150+setW*maxSets+112;
+  const cols=`<col style="width:28px"><col style="width:150px">`
+    +Array.from({length:maxSets},()=>`<col style="width:${setW}px">`).join('')
+    +`<col style="width:112px">`;
+  const style = pr.repStyles && pr.repStyles[w];
+  const rightTag = style ? esc(style.name.toUpperCase()) : (day.cardio?'CARDIO':'REPS · WT');
+  const styleBar = style && !day.cardio
+    ? `<tr><td class="gbar" style="color:var(--accent)" colspan="${maxSets+3}">★ THIS WEEK — ${esc(style.name.toUpperCase())}: ${esc(style.detail)}</td></tr>` : '';
+  return `<div class="sheet">
+    <div class="banner">${esc(day.banner)}</div>
+    <div class="motto">${esc(day.motto)}</div>
+    <div class="subhead"><span>${esc(day.focus||'')}</span><span>WK ${w+1} · ${rightTag}</span></div>
+    <div class="gwrap"><table class="grit" style="width:${tableW}px">
+      <colgroup>${cols}</colgroup>
+      <tr><th class="gx-tag"></th><th class="gx-name seth" style="text-align:left;padding-left:10px!important">EXERCISE</th>${setHdr}<th class="seth">NOTES</th></tr>
+      ${styleBar}
+      ${rows}
+    </table></div>
+  </div>`;
+}
+function setLog(el,pid,w,dayId,ei,s,field,def){
+  const log=logFor(pid,w,dayId); log[ei]=log[ei]||[]; log[ei][s]=log[ei][s]||{};
+  const cell=log[ei][s]; const val=el.value;
+  if(field==='wt'){
+    cell.wt = val===''?undefined:parseFloat(val);
+    // entering a weight banks the prescribed reps so the set counts as done
+    if(cell.reps==null && def!=='' && def!=null) cell.reps=parseInt(def);
+  } else {
+    cell.reps = val===''?undefined:parseInt(val);
+  }
+  cell.done = cell.wt!=null && cell.reps!=null;
+  save();
+  // update this cell in place (keeps the keyboard open while logging) — no full re-render
+  const ins=el.parentElement;
+  if(ins){
+    const inputs=ins.querySelectorAll('input');
+    inputs.forEach(i=>i.classList.toggle('done',cell.done));
+    if(field==='wt' && cell.reps!=null && inputs[1] && inputs[1].value==='') inputs[1].value=cell.reps;
+  }
+}
+function guessCat(name,note){
+  const n=(name+' '+(note||'')).toLowerCase();
+  if(/squat|leg press|lunge|step|extension|hack|wall sit/.test(n)) return 'Quads / Squat';
+  if(/rdl|deadlift|hip thrust|glute|hamstring|curl machine|good morning|bridge|hyperext/.test(n)) return 'Hamstrings / Hinge';
+  if(/overhead|shoulder press|arnold|lateral raise|front raise|military|pike/.test(n)) return 'Vertical Push';
+  if(/bench|chest|fly|push-?up|press-?up|incline|dip(?!s? bar)/.test(n)) return 'Horizontal Push';
+  if(/pull-?up|chin-?up|pulldown|lat /.test(n)) return 'Vertical Pull';
+  if(/row|face pull|rear delt/.test(n)) return 'Horizontal Pull';
+  if(/bicep|curl/.test(n)) return 'Biceps';
+  if(/tricep|skull|pushdown|kickback|dip/.test(n)) return 'Triceps';
+  if(/plank|crunch|sit-?up|leg raise|bicycle|twist|climber|core|abs/.test(n)) return 'Core';
+  return 'Horizontal Push';
+}
+function openSwap(pid,dayId,ei,cat){
+  const have=EQUIP[S.profile.equip].has;
+  const list=(SWAPS[cat]||[]).filter(x=>x.e.every(e=>have.includes(e)));
+  const all=(SWAPS[cat]||[]);
+  const opts = list.length?list:all;
+  modal(`<div class="grab"></div>
+    <h3 style="margin-bottom:4px">Swap exercise</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:12px">${esc(cat)} · moves you can do with your equipment</div>
+    ${opts.map(x=>{const ok=x.e.every(e=>have.includes(e));
+      return `<div class="listitem"><div class="t"><b>${esc(x.n)}</b><br><small>${x.e.join(' · ')}${ok?'':' · needs more kit'}</small></div>
+      <button class="hbtn" style="color:var(--accent)" onclick="doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')">Use</button></div>`;}).join('')}
+    <button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cancel</button>`);
+}
+function doSwap(pid,dayId,ei,name){ S.swaps=S.swaps||{}; S.swaps[swapKey(pid,dayId,ei)]=name; save(); closeModal(); if(TAB==='train')viewTrain(); else viewToday(); }
+
+/* ============================================================================
+   EAT  — targets, food log, recipe library
+   ========================================================================== */
+function tdee(){
+  const p=S.profile; const kg=p.weightLb/LB_PER_KG;
+  const bmr=NUTRITION.bmr({sex:p.sex,kg,cm:p.heightCm,age:p.age});
+  return Math.round(bmr*NUTRITION.activityFactors[p.activity].f);
+}
+function dietTargets(){ return NUTRITION.targets({goal:S.profile.goal,tdee:tdee(),lb:S.profile.weightLb}); }
+function foodTotals(date){
+  const list=S.food[date]||[];
+  return list.reduce((a,x)=>({cal:a.cal+(+x.cal||0),p:a.p+(+x.p||0),c:a.c+(+x.c||0),f:a.f+(+x.f||0)}),{cal:0,p:0,c:0,f:0});
+}
+let EATSUB='log';
+function viewEat(){
+  const t=dietTargets(); const date=todayISO(); const tot=foodTotals(date);
+  $('view').innerHTML=`
+  <div class="seg">
+    <button class="${EATSUB==='log'?'on':''}" onclick="EATSUB='log';viewEat()">Today</button>
+    <button class="${EATSUB==='plan'?'on':''}" onclick="EATSUB='plan';viewEat()">Targets</button>
+    <button class="${EATSUB==='meals'?'on':''}" onclick="EATSUB='meals';viewEat()">Meals</button>
+  </div>
+  <div id="eatc"></div>`;
+  if(EATSUB==='log') eatLog(t,date,tot);
+  else if(EATSUB==='plan') eatPlan(t);
+  else eatMeals(t);
+}
+function eatLog(t,date,tot){
+  const list=S.food[date]||[];
+  $('eatc').innerHTML=`
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <div><div class="big">${tot.cal}</div><div class="muted" style="font-size:12px">of ${t.cals} kcal · ${t.cals-tot.cal>=0?(t.cals-tot.cal)+' left':Math.abs(tot.cal-t.cals)+' over'}</div></div>
+    </div>
+    ${macroBar('Protein',tot.p,t.protein,'#b4ff3d')}
+    ${macroBar('Carbs',tot.c,t.carbs,'#7ee0ff')}
+    ${macroBar('Fat',tot.f,t.fat,'#ff8a5b')}
+  </div>
+  <div class="card"><h3>Today's food</h3>
+    ${list.length?list.map((x,i)=>`<div class="listitem"><div class="t"><b>${esc(x.n)}</b><br>
+      <small>${x.cal} kcal · P${x.p} C${x.c} F${x.f}</small></div>
+      <button class="hbtn" onclick="delFood('${date}',${i})">✕</button></div>`).join(''):'<div class="empty">Nothing logged yet.</div>'}
+    <div class="btnrow" style="margin-top:13px">
+      <button class="btn" onclick="openAddFood()">+ Add food</button>
+      <button class="btn sec" onclick="EATSUB='meals';viewEat()">From meals</button>
+    </div>
+  </div>`;
+}
+function eatPlan(t){
+  const p=S.profile;
+  $('eatc').innerHTML=`
+  <div class="card"><h3>Your daily targets</h3>
+    <div class="kv"><span class="k">Maintenance (TDEE)</span><b>${tdee()} kcal</b></div>
+    <div class="kv"><span class="k">Daily target</span><b>${t.cals} kcal</b></div>
+    <div class="kv"><span class="k">Protein</span><b>${t.protein} g</b></div>
+    <div class="kv"><span class="k">Carbs</span><b>${t.carbs} g</b></div>
+    <div class="kv"><span class="k">Fat</span><b>${t.fat} g</b></div>
+    <div class="kv"><span class="k">Fiber</span><b>${t.fiber}g+</b></div>
+    <div class="kv"><span class="k">Water</span><b>${t.water} L+</b></div>
+    <p class="hero" style="margin-top:12px">${esc(t.note)}</p>
+  </div>
+  <div class="card"><h3>Coach's rules · ${({lose:'cutting',gain:'lean bulk',recomp:'recomp',general:'health'})[p.goal]}</h3>
+    ${NUTRITION.rules[p.goal].map(r=>`<div class="listitem"><span class="tagdot" style="background:var(--accent)"></span><div class="t">${esc(r)}</div></div>`).join('')}
+  </div>`;
+}
+function eatMeals(t){
+  const goalTag=S.profile.goal==='gain'?'bulk':'cut';
+  const meals=['breakfast','lunch','dinner','snack'];
+  $('eatc').innerHTML=meals.map(m=>{
+    const rs=RECIPES.filter(r=>r.meal===m && (r.tag==='any'||r.tag===goalTag||S.profile.goal==='recomp'||S.profile.goal==='general'));
+    if(!rs.length) return '';
+    return `<div class="card"><h3>${m}</h3>
+      ${rs.map(r=>`<div class="listitem"><div class="t"><b>${esc(r.n)}</b><br>
+        <small>${r.cal} kcal · P${r.p} C${r.c} F${r.f} · ${esc(r.src)}</small></div>
+        <button class="hbtn" style="color:var(--accent)" onclick="addRecipe('${esc(r.n)}',${r.cal},${r.p},${r.c},${r.f})">+ Log</button></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+function addRecipe(n,cal,p,c,f){ const d=todayISO(); S.food[d]=S.food[d]||[]; S.food[d].push({n,cal,p,c,f}); save();
+  toast(`Logged ${n}`); EATSUB='log'; viewEat(); }
+function delFood(d,i){ S.food[d].splice(i,1); save(); viewEat(); }
+function openAddFood(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Add food</h3>
+    <label class="fld"><span class="lab">Name</span><input id="f_n" placeholder="e.g. Chicken & rice"></label>
+    <div class="row">
+      <label class="fld"><span class="lab">Calories</span><input id="f_cal" inputmode="numeric"></label>
+      <label class="fld"><span class="lab">Protein g</span><input id="f_p" inputmode="numeric"></label>
+    </div>
+    <div class="row">
+      <label class="fld"><span class="lab">Carbs g</span><input id="f_c" inputmode="numeric"></label>
+      <label class="fld"><span class="lab">Fat g</span><input id="f_f" inputmode="numeric"></label>
+    </div>
+    <button class="btn" onclick="saveFood()">Add</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function saveFood(){
+  const d=todayISO(); S.food[d]=S.food[d]||[];
+  S.food[d].push({n:$('f_n').value||'Food',cal:+$('f_cal').value||0,p:+$('f_p').value||0,c:+$('f_c').value||0,f:+$('f_f').value||0});
+  save(); closeModal(); viewEat();
+}
+
+/* ============================================================================
+   WEIGH
+   ========================================================================== */
+/* ---------- weight analytics ---------- */
+function sortedWeights(){ return S.weights.slice().sort((a,b)=>a.d<b.d?-1:1); }
+function addDaysD(date,n){ const d=new Date(date); d.setDate(d.getDate()+Math.round(n)); return d; }
+function dayspan(a,b){ return (new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000; }
+function ensureGoalDefaults(){
+  const p=S.profile; if(!p) return;
+  if(!p.weighCadence) p.weighCadence='daily';
+  if(p.targetRate==null){ const dir=goalDir(); p.targetRate = dir==='lose'?1 : dir==='gain'?0.5 : 0; }
+}
+function goalDir(){ const p=S.profile; const start=S.weights.length?sortedWeights()[0].w:p.weightLb;
+  return p.goalLb<start-0.5?'lose':p.goalLb>start+0.5?'gain':'maintain'; }
+function trendWeight(ws,cadence){
+  if(!ws.length) return S.profile.weightLb;
+  if(cadence==='weekly') return ws[ws.length-1].w;
+  const lastD=ws[ws.length-1].d;
+  const wk=ws.filter(e=>dayspan(e.d,lastD)<=6);
+  return wk.reduce((a,e)=>a+e.w,0)/wk.length;            // 7-day trend (kills daily noise)
+}
+function recentWeights(ws,days){ if(!ws.length) return ws; const last=ws[ws.length-1].d;
+  return ws.filter(e=>dayspan(e.d,last)<=days); }
+function ratePerWeek(ws){                                  // signed lb/week via least squares
+  if(ws.length<2) return null;
+  const t0=new Date(ws[0].d+'T00:00:00').getTime();
+  const P=ws.map(e=>({x:(new Date(e.d+'T00:00:00').getTime()-t0)/86400000,y:e.w}));
+  if(P[P.length-1].x<3) return null;                       // need a few days of spread
+  const n=P.length, sx=P.reduce((a,p)=>a+p.x,0), sy=P.reduce((a,p)=>a+p.y,0);
+  const sxx=P.reduce((a,p)=>a+p.x*p.x,0), sxy=P.reduce((a,p)=>a+p.x*p.y,0);
+  const den=n*sxx-sx*sx; if(!den) return null;
+  return ((n*sxy-sx*sy)/den)*7;
+}
+function clampK(v){ return Math.max(100,Math.min(400,Math.round(v/50)*50)); }
+function optimize(){
+  ensureGoalDefaults();
+  const p=S.profile, ws=sortedWeights();
+  const cadence=p.weighCadence, dir=goalDir();
+  const start=ws.length?ws[0].w:p.weightLb;
+  const trend=trendWeight(ws,cadence);
+  const goal=p.goalLb, target=p.targetRate||0;
+  const lbToGo=Math.abs(trend-goal);
+  const slope=ratePerWeek(recentWeights(ws,28));          // signed
+  const o={dir,cadence,start,trend,goal,target,lbToGo,slope,
+           actual:slope==null?null:Math.abs(slope),
+           toward: slope==null?null:(dir==='lose'?slope<0:dir==='gain'?slope>0:Math.abs(slope)<0.25)};
+  // projection at actual rate
+  if(o.toward && o.actual>0.05){ o.projWeeks=lbToGo/o.actual; o.projDate=addDaysD(new Date(),o.projWeeks*7); }
+  if(target>0){ o.tgtWeeks=lbToGo/target; o.tgtDate=addDaysD(new Date(),o.tgtWeeks*7); }
+  // status + coaching
+  const cals=dietTargets().cals;
+  const pctBW = o.actual!=null && trend? (o.actual/trend*100):0;   // %bw/week
+  if(slope==null){ o.status='Gathering data'; o.color='var(--muted)';
+    o.advice=`Log ${cadence==='daily'?'a few days':'2–3 weeks'} of weigh-ins and I'll read your real rate and tune your calories.`; }
+  else if(lbToGo<1){ o.status='Goal reached 🎯'; o.color='var(--good)';
+    o.advice='You hit your goal — switch to maintenance in the Coach tab, or set a new target.'; }
+  else if(!o.toward || o.actual<0.1){ o.status='Stalled'; o.color='var(--warn)';
+    if(dir==='lose') o.advice=`Scale isn't moving. Trim ~250 kcal/day (to ~${cals-250}) or add ~2,000 steps / one LISS walk. Re-check in a week.`;
+    else o.advice=`Not gaining. Add ~250 kcal/day (to ~${cals+250}) and make sure you're hitting protein.`; }
+  else if(o.actual < target*0.7){ const gap=target-o.actual; const k=clampK(gap*500); o.status='Behind pace'; o.color='var(--warn)';
+    o.advice=dir==='lose'?`Losing ${fmt(o.actual)}/wk vs ${fmt(target)} target. Cut ~${k} kcal/day (to ~${cals-k}) or add steps to speed it up.`
+                          :`Gaining ${fmt(o.actual)}/wk vs ${fmt(target)} target. Add ~${k} kcal/day (to ~${cals+k}).`; }
+  else if(o.actual > target*1.5 || (dir==='lose'&&pctBW>1)){ const ex=o.actual-target; const k=clampK(ex*500); o.status='Too fast'; o.color='var(--warn)';
+    o.advice=dir==='lose'?`Dropping ${fmt(o.actual)}/wk — fast enough to risk muscle. Add ~${k} kcal/day (to ~${cals+k}) and keep protein high.`
+                          :`Gaining ${fmt(o.actual)}/wk — that's mostly fat. Cut ~${k} kcal/day (to ~${cals-k}).`; }
+  else { o.status='On track ✅'; o.color='var(--good)';
+    o.advice=`${fmt(o.actual)} lb/wk — right on your ${fmt(target)} lb target. Hold ~${cals} kcal/day and keep showing up.`; }
+  return o;
+}
+function weighStreak(ws){
+  const set=new Set(ws.map(e=>e.d)); let n=0, d=new Date();
+  if(!set.has(isoLocal(d))){ d.setDate(d.getDate()-1); if(!set.has(isoLocal(d))) return 0; }
+  while(set.has(isoLocal(d))){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+function loggedThisPeriod(ws,cadence){
+  if(!ws.length) return false;
+  const last=ws[ws.length-1].d;
+  return cadence==='daily' ? last===todayISO() : dayspan(last,todayISO())<7;
+}
+function weightDeltaText(){
+  if(!S.weights.length) return '';
+  const o=optimize(); const d=o.trend-o.goal;
+  if(Math.abs(d)<1) return 'at goal 🎯';
+  return (d>0?`${fmt(Math.abs(d))} lb to go`:`${fmt(Math.abs(d))} lb past goal`);
+}
+function viewWeigh(){
+  ensureGoalDefaults();
+  const p=S.profile, ws=sortedWeights(), o=optimize();
+  const cur=ws.length?ws[ws.length-1].w:p.weightLb;
+  const start=ws.length?ws[0].w:p.weightLb;
+  const changed=cur-start;
+  const cad=p.weighCadence;
+  const dir=o.dir;
+  const paces = dir==='gain'?[0.25,0.5,0.75,1]:[0.5,1,1.5,2];
+  const needWeigh=!loggedThisPeriod(ws,cad);
+  const streak=weighStreak(ws);
+
+  $('view').innerHTML=`
+  <div class="card" style="background:linear-gradient(135deg,#15294f,#0d1422)">
+    <div class="row">
+      <div><div class="muted" style="font-size:11px;font-weight:700">${cad==='daily'?'TREND (7-day)':'CURRENT'}</div><div class="big">${fmt(o.trend)}<span style="font-size:15px"> lb</span></div></div>
+      <div style="text-align:center"><div class="muted" style="font-size:11px;font-weight:700">CHANGE</div>
+        <div class="big" style="color:${changed<0?'var(--good)':changed>0?'var(--warn)':'var(--text)'}">${changed>0?'+':''}${fmt(changed)}</div></div>
+      <div style="text-align:right"><div class="muted" style="font-size:11px;font-weight:700">GOAL</div><div class="big">${fmt(o.goal)}</div></div>
+    </div>
+    <div style="text-align:center;margin-top:8px"><span class="pill" style="background:rgba(0,0,0,.25);color:${o.color}">${o.status}</span>
+      <span class="muted" style="font-size:12px;margin-left:6px">${weightDeltaText()}</span></div>
+  </div>
+
+  ${needWeigh?`<div class="card" style="border-color:var(--accent);display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><b style="font-size:14px">${cad==='daily'?"Today's weigh-in":"This week's weigh-in"}</b>
+      <div class="muted" style="font-size:12px">${cad==='daily'?'Same time each morning is best.':'Pick a consistent day each week.'}</div></div>
+    <button class="btn" style="width:auto;padding:12px 18px" onclick="openAddWeight()">Log</button></div>`
+   :`<div class="card" style="display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><b style="font-size:14px">✓ ${cad==='daily'?'Logged today':'Logged this week'}</b>
+      ${cad==='daily'&&streak>1?`<div class="muted" style="font-size:12px">🔥 ${streak}-day streak</div>`:''}</div>
+    <button class="btn sec" style="width:auto;padding:12px 18px" onclick="openAddWeight()">Edit</button></div>`}
+
+  <div class="card"><h3>Coach's read</h3>
+    <div class="row" style="margin-bottom:10px">
+      <div><div class="muted" style="font-size:11px;font-weight:700">YOUR RATE</div>
+        <div style="font-size:22px;font-weight:900;color:${o.color}">${o.actual!=null?`${o.slope<0?'-':'+'}${fmt(o.actual)}`:'—'}<span style="font-size:12px" class="muted"> lb/wk</span></div></div>
+      <div style="text-align:right"><div class="muted" style="font-size:11px;font-weight:700">TARGET</div>
+        <div style="font-size:22px;font-weight:900">${o.target>0?fmt(o.target):'—'}<span style="font-size:12px" class="muted"> lb/wk</span></div></div>
+    </div>
+    <p class="hero" style="font-size:13px">${esc(o.advice)}</p>
+    ${o.projDate?`<div class="kv" style="margin-top:8px"><span class="k">At this rate, goal by</span><b>${esc(fmtDate(o.projDate))}, ${o.projDate.getFullYear()}</b></div>`:''}
+    <button class="btn sec" style="margin-top:11px" onclick="go('eat')">Adjust my calories →</button>
+  </div>
+
+  <div class="card"><h3>Goal & pace</h3>
+    <div class="kv"><span class="k">Goal weight</span><b>${fmt(o.goal)} lb <span class="muted" style="cursor:pointer;color:var(--accent2)" onclick="openEditGoal()">edit</span></b></div>
+    <div style="margin:12px 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted)">TARGET PACE (LB / WEEK)</div>
+    <div class="chips">${paces.map(r=>`<button class="chip ${p.targetRate==r?'on':''}" onclick="setPace(${r})">${r}</button>`).join('')}</div>
+    <div style="margin:14px 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted)">WEIGH-IN CADENCE</div>
+    <div class="seg" style="margin-bottom:0">
+      <button class="${cad==='daily'?'on':''}" onclick="setCadence('daily')">Daily</button>
+      <button class="${cad==='weekly'?'on':''}" onclick="setCadence('weekly')">Weekly</button>
+    </div>
+    <p class="hero" style="font-size:12px;margin-top:11px">${cad==='daily'?'Daily catches trends fast — I smooth it into a 7-day average so day-to-day water swings don\'t fool you.':'One weigh-in a week, same day & time. Simple and low-stress.'}
+    ${o.tgtDate?` At ${fmt(o.target)} lb/wk you'd reach ${fmt(o.goal)} lb around <b>${esc(fmtDate(o.tgtDate))}, ${o.tgtDate.getFullYear()}</b>.`:''}</p>
+  </div>
+
+  <div class="card"><h3>Trend</h3>${chartHTML(ws,o.goal)}</div>
+
+  <div class="card"><h3>History</h3>
+    ${ws.length?ws.slice().reverse().map(x=>`<div class="listitem"><div class="t"><b>${fmt(x.w)} lb</b><br><small>${esc(fmtDate(new Date(x.d+'T00:00:00')))}, ${x.d.slice(0,4)}</small></div>
+      <button class="hbtn" onclick="delWeight('${x.d}')">✕</button></div>`).join(''):'<div class="empty">No entries yet.</div>'}
+  </div>
+
+  <div class="card"><h3>Weigh-in tips</h3>
+    ${['First thing in the morning, after the bathroom, before eating or drinking.','Wear the same (or nothing) each time.','The scale jumps with water, salt, carbs & sleep — trust the trend line, not one day.','Don\'t out-train a bad week of eating; the deficit is won in the kitchen.'].map(t=>`<div class="listitem" style="padding:8px 0"><span class="tagdot" style="background:var(--accent2)"></span><div class="t" style="font-size:12.5px">${esc(t)}</div></div>`).join('')}
+  </div>`;
+}
+function setPace(r){ S.profile.targetRate=r; save(); viewWeigh(); }
+function setCadence(c){ S.profile.weighCadence=c; save(); viewWeigh(); }
+function openEditGoal(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Goal weight</h3>
+    <label class="fld"><span class="lab">Target weight (lb)</span><input id="g_v" inputmode="decimal" value="${S.profile.goalLb}"></label>
+    <button class="btn" onclick="S.profile.goalLb=+$('g_v').value||S.profile.goalLb;save();closeModal();viewWeigh()">Save</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function chartHTML(ws,goal){
+  if(ws.length<2) return '<div class="empty">Log a couple of days to see your trend line.</div>';
+  const W=320,H=150,pad=10;
+  // 7-day moving average (trend) per point
+  const ma=ws.map((e,i)=>{ const win=ws.filter(x=>dayspan(x.d,e.d)<=6 && x.d<=e.d); return win.reduce((a,x)=>a+x.w,0)/win.length; });
+  const vals=ws.map(x=>x.w).concat(ma,[goal]);
+  let mn=Math.min(...vals),mx=Math.max(...vals); if(mn===mx){mn-=2;mx+=2;} const rng=mx-mn;
+  const x=i=>pad+i*(W-2*pad)/(ws.length-1);
+  const y=v=>pad+(1-(v-mn)/rng)*(H-2*pad);
+  const maPts=ma.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const gy=y(goal);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    <line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#7ee0ff" stroke-dasharray="4 4" stroke-width="1"/>
+    <text x="${W-pad}" y="${gy-4}" fill="#7ee0ff" font-size="9" text-anchor="end">goal ${fmt(goal)}</text>
+    ${ws.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.w)}" r="2.2" fill="#41506a"/>`).join('')}
+    <polyline points="${maPts}" fill="none" stroke="#b4ff3d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="${pad}" y="${H-2}" fill="#5d6675" font-size="8">dots = daily · line = 7-day trend</text>
+  </svg>`;
+}
+function openAddWeight(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Log weight</h3>
+    <label class="fld"><span class="lab">Weight (lb)</span><input id="w_v" inputmode="decimal" value="${S.weights.length?fmt(S.weights[S.weights.length-1].w):S.profile.weightLb}"></label>
+    <label class="fld"><span class="lab">Date</span><input id="w_d" type="date" value="${todayISO()}"></label>
+    <button class="btn" onclick="saveWeight()">Save</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function saveWeight(){
+  const v=parseFloat($('w_v').value), d=$('w_d').value||todayISO();
+  if(!v){closeModal();return;}
+  S.weights=S.weights.filter(x=>x.d!==d); S.weights.push({d,w:v});
+  S.weights.sort((a,b)=>a.d<b.d?-1:1);
+  S.profile.weightLb=S.weights[S.weights.length-1].w; // keep TDEE current
+  save(); closeModal(); viewWeigh();
+}
+function delWeight(d){ S.weights=S.weights.filter(x=>x.d!==d); save(); viewWeigh(); }
+
+/* ============================================================================
+   GAMIFIED DAILY WEIGH-IN POPUP (app-wide, streak based)
+   ========================================================================== */
+function maybeWeighPrompt(){
+  const p=S.profile; if(!p) return;
+  const cad=p.weighCadence||'daily';
+  if(loggedThisPeriod(sortedWeights(),cad)) return;   // already logged this period
+  if(S.lastWeighPrompt===todayISO()) return;          // only nudge once a day
+  openWeighPopup();
+}
+function streakDots(){
+  const set=new Set(S.weights.map(e=>e.d)); let h='';
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i);
+    const on=set.has(isoLocal(d));
+    h+=`<span style="width:11px;height:11px;border-radius:50%;background:${on?'var(--accent)':'var(--line)'};box-shadow:${on?'0 0 8px var(--accent)':'none'}"></span>`; }
+  return `<div style="display:flex;gap:7px;justify-content:center;margin:10px 0 4px">${h}</div>`;
+}
+function openWeighPopup(){
+  const ws=sortedWeights();
+  const st=weighStreak(ws), best=Math.max(S.bestStreak||0,st);
+  const last=ws.length?fmt(ws[ws.length-1].w):S.profile.weightLb;
+  const cad=S.profile.weighCadence||'daily';
+  modal(`<div class="grab"></div>
+    <div style="text-align:center">
+      <div style="font-size:44px;line-height:1">🔥</div>
+      <div style="font-size:32px;font-weight:900;letter-spacing:-.02em">${st} day${st===1?'':'s'}</div>
+      <div class="muted" style="font-size:12px">${st>0?"streak going — don't break it!":'log today to start your streak'}${best>st?` · best ${best}`:''}</div>
+      ${cad==='daily'?streakDots():''}
+    </div>
+    <label class="fld" style="margin-top:10px"><span class="lab">${cad==='daily'?"Today's":"This week's"} weight (lb)</span>
+      <input id="pw_v" inputmode="decimal" value="${last}"></label>
+    <button class="btn" onclick="popupSaveWeight()">Log &amp; keep streak 🔥</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="skipWeighToday()">Skip for now</button>`);
+  setTimeout(()=>{ const i=$('pw_v'); if(i){ i.focus(); i.select&&i.select(); } },60);
+}
+function popupSaveWeight(){
+  const v=parseFloat($('pw_v').value); if(!v){ closeModal(); return; }
+  const d=todayISO();
+  S.weights=S.weights.filter(x=>x.d!==d); S.weights.push({d,w:v});
+  S.weights.sort((a,b)=>a.d<b.d?-1:1);
+  S.profile.weightLb=v; S.lastWeighPrompt=d;
+  const st=weighStreak(sortedWeights());
+  S.bestStreak=Math.max(S.bestStreak||0,st);
+  save(); closeModal();
+  const milestones={3:'3-day streak! 🔥',7:'One week straight! 🔥🔥',14:'Two weeks! Unstoppable 💪',21:'21 days — it\'s a habit now',30:'30-day streak! Elite 🏆',50:'50 days! 🤯',100:'100 days. Legend. 👑'};
+  toast(milestones[st] || `Logged · 🔥 ${st}-day streak`);
+  if(TAB==='weigh') viewWeigh(); else if(TAB==='today') viewToday();
+}
+function skipWeighToday(){ S.lastWeighPrompt=todayISO(); save(); closeModal(); }
+
+/* ============================================================================
+   MOVE — spin-the-wheel desk workouts + hourly nudges
+   ========================================================================== */
+function hourLabel(h){ const ap=h<12?'AM':'PM'; let hh=h%12; if(hh===0)hh=12; return hh+' '+ap; }
+function hourOpts(sel){ let o=''; for(let h=5;h<=22;h++) o+=`<option value="${h}" ${h===sel?'selected':''}>${hourLabel(h)}</option>`; return o; }
+function wheelSVG(){
+  const n=WHEEL.length, seg=360/n, R=140, cx=150, cy=150;
+  const cols=['#15294f','#1f3d77']; let paths='', labels='';
+  for(let i=0;i<n;i++){
+    const a0=(i*seg-90)*Math.PI/180, a1=((i+1)*seg-90)*Math.PI/180;
+    const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0), x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    paths+=`<path d="M${cx},${cy} L${x0.toFixed(1)},${y0.toFixed(1)} A${R},${R} 0 0,1 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="${cols[i%2]}" stroke="#0a0d14" stroke-width="1.5"/>`;
+    const am=((i+0.5)*seg-90)*Math.PI/180, lr=R*0.64;
+    const lx=cx+lr*Math.cos(am), ly=cy+lr*Math.sin(am), rot=(i+0.5)*seg;
+    labels+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#dfe8ff" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="middle" transform="rotate(${rot.toFixed(1)},${lx.toFixed(1)},${ly.toFixed(1)})">${esc(WHEEL[i].short)}</text>`;
+  }
+  return `<svg viewBox="0 0 300 300" id="wheel" style="width:100%;max-width:290px;display:block;margin:0 auto;transform-origin:50% 50%;transition:transform 3.2s cubic-bezier(.16,.7,.18,1)">
+    <circle cx="${cx}" cy="${cy}" r="${R+3}" fill="#0a0d14" stroke="#2c3f22"/>${paths}${labels}
+    <circle cx="${cx}" cy="${cy}" r="22" fill="#b4ff3d"/></svg>`;
+}
+let wheelRot=0, spinning=false;
+function spinWheel(){
+  if(spinning) return; spinning=true;
+  const n=WHEEL.length, seg=360/n;
+  const idx=Math.floor(Math.random()*n);
+  const desired=(360-((idx+0.5)*seg)%360+360)%360;
+  wheelRot = Math.ceil((wheelRot+1)/360)*360 + 360*5 + desired;
+  const el=$('wheel'); if(el) el.style.transform=`rotate(${wheelRot}deg)`;
+  const b=$('spinBtn'); if(b){ b.disabled=true; b.style.opacity=.5; b.textContent='SPINNING…'; }
+  setTimeout(()=>{ spinning=false; if(b){ b.disabled=false; b.style.opacity=1; b.textContent='SPIN AGAIN'; } showMoveResult(WHEEL[idx]); }, 3300);
+}
+function showMoveResult(m){
+  const el=$('spinResult'); if(!el) return;
+  el.innerHTML=`<div class="card" style="border-color:var(--accent);text-align:center;margin:14px 0 0">
+    <div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.12em">YOUR MOVE</div>
+    <div style="font-size:23px;font-weight:900;margin:5px 0">${esc(m.n)}</div>
+    <div style="font-size:16px;color:var(--accent);font-weight:800">${esc(m.reps)}</div>
+    <p class="hero" style="font-size:13px;margin:9px 0 13px">${esc(m.d)}</p>
+    <button class="btn" onclick="logMove()">Did it ✓</button></div>`;
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function logMove(){ const d=todayISO(); S.moveLog=S.moveLog||{}; S.moveLog[d]=(S.moveLog[d]||0)+1;
+  save(); const c=S.moveLog[d]; toast(`💪 ${c} break${c===1?'':'s'} done today`); viewMove(); }
+function toggleMoveReminders(){
+  const p=S.profile;
+  if(!p.moveReminders){
+    if(!('Notification'in window)){ toast('Notifications not supported here'); return; }
+    Notification.requestPermission().then(perm=>{
+      p.moveReminders = perm==='granted';
+      if(perm!=='granted') toast('Allow notifications in your browser settings');
+      save(); startMoveTimer(); viewMove();
+    });
+  } else { p.moveReminders=false; save(); viewMove(); }
+}
+function testNotif(){ const m=DESK[Math.floor(Math.random()*DESK.length)];
+  try{ new Notification('💪 Move break!',{body:`${m.n} — ${m.reps}`,icon:'icon-192.png'}); }catch(e){ toast('Could not send notification'); } }
+function checkMoveReminder(){
+  const p=S.profile; if(!p||!p.moveReminders) return;
+  if(!('Notification'in window)||Notification.permission!=='granted') return;
+  const now=new Date(), h=now.getHours();
+  const ws=p.workStart??9, we=p.workEnd??17;
+  if(h<ws||h>=we) return;
+  const key=isoLocal(now)+'-'+h;
+  if(window._lastMoveHour===key) return; window._lastMoveHour=key;
+  const m=DESK[Math.floor(Math.random()*DESK.length)];
+  try{ new Notification('💪 Move break!',{body:`${m.n} — ${m.reps}\n${m.d}`,icon:'icon-192.png',tag:'fitcoach-move',renotify:true}); }catch(e){}
+}
+function startMoveTimer(){ if(window._moveTimer) return; window._moveTimer=setInterval(checkMoveReminder,60000); checkMoveReminder(); }
+function viewMove(){
+  const p=S.profile, today=todayISO();
+  const done=(S.moveLog&&S.moveLog[today])||0;
+  const ws=p.workStart??9, we=p.workEnd??17, goal=Math.max(1,we-ws);
+  const pct=Math.min(100,done/goal*100);
+  const notifOK=('Notification'in window)&&Notification.permission==='granted';
+  $('view').innerHTML=`
+  <div class="card" style="background:linear-gradient(135deg,#15294f,#0d1422)">
+    <h2 style="font-size:20px">Move at work 🤸</h2>
+    <p class="hero" style="font-size:13px;margin-top:5px">Spin for a quick desk-friendly workout — no equipment, no sweat. Flip on hourly nudges and bank one every hour you're on the clock.</p>
+  </div>
+  <div class="card"><h3>Movement breaks today</h3>
+    <div class="row" style="margin-bottom:9px">
+      <div><span class="big">${done}</span><span class="muted" style="font-size:13px"> / ${goal}</span></div>
+      <div style="align-self:center;text-align:right"><span class="pill ${done>=goal?'acc':'blue'}">${done>=goal?'goal hit 🎉':(goal-done)+' to go'}</span></div>
+    </div>
+    <div class="track"><span style="width:${pct}%;background:var(--accent)"></span></div>
+  </div>
+  <div class="card" style="text-align:center">
+    <h3>Spin the wheel</h3>
+    <div style="position:relative;width:100%;max-width:290px;margin:4px auto 0">
+      <div style="position:absolute;top:-3px;left:50%;transform:translateX(-50%);z-index:2;width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:24px solid var(--accent);filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))"></div>
+      ${wheelSVG()}
+    </div>
+    <button class="btn" id="spinBtn" style="margin-top:16px" onclick="spinWheel()">SPIN</button>
+    <div id="spinResult"></div>
+  </div>
+  <div class="card"><h3>Hourly nudges</h3>
+    <div class="kv"><span class="k">Remind me every hour to move</span>
+      <button class="chip ${p.moveReminders?'on':''}" style="flex:none;min-width:66px" onclick="toggleMoveReminders()">${p.moveReminders?'ON':'OFF'}</button></div>
+    <div class="row" style="margin-top:10px">
+      <label class="fld" style="margin:0"><span class="lab">Work start</span>
+        <select onchange="S.profile.workStart=+this.value;save();viewMove()">${hourOpts(ws)}</select></label>
+      <label class="fld" style="margin:0"><span class="lab">Work end</span>
+        <select onchange="S.profile.workEnd=+this.value;save();viewMove()">${hourOpts(we)}</select></label>
+    </div>
+    <p class="hero" style="font-size:12px;margin-top:11px">${p.moveReminders ? (notifOK?`✅ A reminder will pop at the top of each hour, ${hourLabel(ws)}–${hourLabel(we)}, while FitCoach is open or installed.`:'⚠️ Notifications are blocked — allow them in your browser settings to get nudges.') : 'Off. Turn on to get an hourly nudge with a random desk workout.'}</p>
+    ${notifOK?`<button class="btn sec" style="margin-top:6px" onclick="testNotif()">Send a test reminder</button>`:''}
+  </div>
+  <div class="card"><h3>Desk workout library</h3>
+    ${DESK.map(m=>`<div class="listitem"><div class="t"><b>${esc(m.n)}</b> <span class="muted" style="font-size:11px">· ${esc(m.reps)}</span><br><small>${esc(m.d)}</small></div>
+      <button class="hbtn" style="color:var(--accent)" onclick="logMove()">+ Did it</button></div>`).join('')}
+  </div>`;
+}
+
+/* ============================================================================
+   COACH
+   ========================================================================== */
+function viewCoach(){
+  const p=S.profile, pr=prog(p.programId), w=currentWeek();
+  $('view').innerHTML=`
+  <div class="card" style="background:linear-gradient(135deg,#1b3d77,#0d1422)">
+    <h2 style="font-size:20px">Your Coach</h2>
+    <p class="hero" style="margin-top:6px">${whyPicked(p,pr.id)}</p>
+  </div>
+  <div class="card"><h3>Current program</h3>
+    <div class="kv"><span class="k">Program</span><b>${esc(pr.name)}</b></div>
+    <div class="kv"><span class="k">Progress</span><b>Week ${w+1} of ${pr.weeks}</b></div>
+    <div class="kv"><span class="k">Source</span><b>${esc(pr.author)}</b></div>
+    <button class="btn sec" style="margin-top:12px" onclick="openProgramPicker()">Switch program</button>
+  </div>
+  <div class="card"><h3>All your programs</h3>
+    ${PROGRAMS.map(x=>`<div class="listitem"><div class="t"><b>${esc(x.name)}</b><br>
+      <small>${x.weeks}wk · ${x.daysPerWeek}d/wk · ${EQUIP[x.equip].label} · ${x.goals.map(g=>({lose:'cut',gain:'build',recomp:'recomp',general:'health'})[g]).join('/')}</small></div>
+      ${x.id===pr.id?'<span class="pill acc">active</span>':`<button class="hbtn" style="color:var(--accent)" onclick="setProgram('${x.id}')">Use</button>`}</div>`).join('')}
+  </div>
+  <div class="card"><h3>Profile</h3>
+    <div class="kv"><span class="k">Goal</span><b>${({lose:'Lose / cut',gain:'Build muscle',recomp:'Recomp',general:'General'})[p.goal]}</b></div>
+    <div class="kv"><span class="k">Equipment</span><b>${EQUIP[p.equip].label}</b></div>
+    <div class="kv"><span class="k">Stats</span><b>${p.age}y · ${Math.floor(p.heightCm/2.54/12)}'${Math.round(p.heightCm/2.54%12)}" · ${p.weightLb}lb</b></div>
+    <button class="btn ghost" style="margin-top:12px" onclick="editProfile()">Edit profile & goal</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="resetAll()">Reset everything</button>
+  </div>
+  <div class="card"><h3>Your source packets</h3>
+    <p class="hero">Every workout & meal here was built from your PDFs: F/12 Shred, Gains By Brains, 8 Week Shred, 12 Week Transformation and the Lean Bulking guide.</p>
+  </div>`;
+}
+function openProgramPicker(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Choose a program</h3>
+  ${PROGRAMS.map(x=>`<div class="listitem"><div class="t"><b>${esc(x.name)}</b><br><small>${esc(x.blurb)}</small></div>
+    <button class="hbtn" style="color:var(--accent)" onclick="setProgram('${x.id}')">Use</button></div>`).join('')}
+  <button class="btn ghost" style="margin-top:12px" onclick="closeModal()">Cancel</button>`);
+}
+function setProgram(id){ S.profile.programId=id; S.profile.startDate=todayISO(); S.viewWeek=null; save(); closeModal(); go('today'); }
+function editProfile(){
+  const p=S.profile;
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Edit profile</h3>
+    <label class="fld"><span class="lab">Goal</span>
+      <select id="e_goal">${[['lose','Lose / cut'],['gain','Build muscle'],['recomp','Recomp'],['general','General']].map(([k,l])=>`<option value="${k}" ${p.goal===k?'selected':''}>${l}</option>`).join('')}</select></label>
+    <label class="fld"><span class="lab">Equipment</span>
+      <select id="e_eq">${Object.entries(EQUIP).map(([k,v])=>`<option value="${k}" ${p.equip===k?'selected':''}>${v.label}</option>`).join('')}</select></label>
+    <label class="fld"><span class="lab">Activity</span>
+      <select id="e_act">${Object.entries(NUTRITION.activityFactors).map(([k,v])=>`<option value="${k}" ${p.activity===k?'selected':''}>${v.label}</option>`).join('')}</select></label>
+    <div class="row"><label class="fld"><span class="lab">Weight (lb)</span><input id="e_w" inputmode="decimal" value="${p.weightLb}"></label>
+      <label class="fld"><span class="lab">Goal (lb)</span><input id="e_g" inputmode="decimal" value="${p.goalLb}"></label></div>
+    <button class="btn" onclick="saveProfile()">Save</button>
+    <button class="btn sec" style="margin-top:9px" onclick="closeModal();reRecommend()">Save & re-pick program</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function saveProfile(){
+  const p=S.profile; p.goal=$('e_goal').value; p.equip=$('e_eq').value; p.activity=$('e_act').value;
+  p.weightLb=+$('e_w').value||p.weightLb; p.goalLb=+$('e_g').value||p.goalLb;
+  save(); closeModal(); viewCoach();
+}
+function reRecommend(){ const id=recommend(S.profile); setProgram(id); }
+function resetAll(){ modal(`<div class="grab"></div><h3>Reset everything?</h3>
+  <p class="hero" style="margin:10px 0 16px">This clears your profile, logs, weight history and food log on this device.</p>
+  <button class="btn" style="background:var(--bad);color:#fff" onclick="localStorage.removeItem(KEY);location.reload()">Yes, wipe it</button>
+  <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`); }
+
+/* ============================================================================
+   MODAL + TOAST
+   ========================================================================== */
+function modal(html){ $('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheetmodal">${html}</div></div>`; }
+function closeModal(){ $('modalRoot').innerHTML=''; }
+function toast(msg){ const t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--accent);color:#0a0d14;padding:11px 18px;border-radius:30px;font-weight:800;z-index:80;box-shadow:0 6px 20px rgba(0,0,0,.4)';
+  document.body.appendChild(t); setTimeout(()=>t.remove(),1400); }
+
+/* ---------- boot ---------- */
+render();
+maybeWeighPrompt();   // gamified daily weigh-in popup on launch
+startMoveTimer();     // hourly move reminders (while the app is open)
+
+</script>
+</body>
+</html>

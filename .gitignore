@@ -1,0 +1,9 @@
+# raw source material — your own PDFs + extracted text (not for publishing)
+source_files/
+extracted/
+
+# os / tooling
+.DS_Store
+__pycache__/
+*.pyc
+.claude/
