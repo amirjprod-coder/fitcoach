@@ -2,7 +2,7 @@
    App shell (HTML/JS) is network-first so a fresh deploy always lands and
    index.html + data.js can never get stuck as a mismatched pair.
    Static assets (icons) stay cache-first. Offline still works from cache. */
-const CACHE = 'fitcoach-v5';
+const CACHE = 'fitcoach-v6';
 const ASSETS = ['./','./index.html','./data.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-180.png'];
 
 self.addEventListener('install', e => {

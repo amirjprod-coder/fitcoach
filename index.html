@@ -1321,9 +1321,83 @@ function viewCoach(){
     <button class="btn ghost" style="margin-top:12px" onclick="editProfile()">Edit profile & goal</button>
     <button class="btn ghost" style="margin-top:9px" onclick="resetAll()">Reset everything</button>
   </div>
+  <div class="card" style="border-color:var(--accent2)"><h3 style="color:var(--accent2)">💾 Backup &amp; restore</h3>
+    <p class="hero" style="font-size:12.5px;margin-bottom:12px">Your data lives only on this device. <b>Back it up</b> so you never lose it — and to move it between Safari and the home-screen app, or to a new phone. Backups include <b>every profile</b>.</p>
+    <div class="btnrow"><button class="btn" onclick="exportData()">⬇︎ Download backup</button>
+      <button class="btn sec" onclick="copyBackup()">Copy</button></div>
+    <div class="btnrow" style="margin-top:10px"><button class="btn sec" onclick="importFile()">Restore from file</button>
+      <button class="btn sec" onclick="pasteRestore()">Paste backup</button></div>
+    <p class="hero" style="font-size:11.5px;margin-top:12px;color:var(--muted)">📱 iPhone tip: Safari and the installed (home-screen) app store data separately. To carry your current data over — open in <b>Safari → Download/Copy backup</b>, then open the <b>home-screen app → Restore</b>. After that, log inside the installed app and back up now and then.</p>
+  </div>
   <div class="card"><h3>Your source packets</h3>
-    <p class="hero">Every workout & meal here was built from your PDFs: F/12 Shred, Gains By Brains, 8 Week Shred, 12 Week Transformation and the Lean Bulking guide.</p>
+    <p class="hero">Every workout & meal here was built from your PDFs: F/12 Shred, Gains By Brains, 8 Week Shred, 12 Week Transformation, GROWTH and the Lean Bulking guide.</p>
   </div>`;
+}
+/* ---------- backup & restore (local-only data safety) ---------- */
+function backupBlob(){ return JSON.stringify({app:'fitcoach',v:1,exported:todayISO(),DB}); }
+function exportData(){
+  try{
+    const blob=new Blob([backupBlob()],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='fitcoach-backup-'+todayISO()+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    toast('Backup downloaded to Files');
+  }catch(e){ copyBackup(); }
+}
+function copyBackup(){
+  const txt=backupBlob();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast('Backup copied — paste it somewhere safe')).catch(()=>showBackupText(txt));
+  } else showBackupText(txt);
+}
+function showBackupText(txt){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:8px">Copy this backup</h3>
+    <p class="hero" style="font-size:12px;margin-bottom:10px">Select all and copy. Save it in Notes or email it to yourself.</p>
+    <textarea id="bk_out" readonly style="width:100%;height:160px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:11px">${esc(txt)}</textarea>
+    <button class="btn" style="margin-top:10px" onclick="$('bk_out').select();document.execCommand&&document.execCommand('copy');toast('Copied')">Copy</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Done</button>`);
+}
+function importFile(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json,.json,text/plain';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return; const r=new FileReader();
+    r.onload=()=>applyImportText(String(r.result)); r.onerror=()=>toast('Couldn\'t read that file'); r.readAsText(f); };
+  inp.click();
+}
+function pasteRestore(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:8px">Paste a backup</h3>
+    <p class="hero" style="font-size:12px;margin-bottom:10px">Paste the backup text you copied earlier, then Restore.</p>
+    <textarea id="bk_in" placeholder="Paste backup here…" style="width:100%;height:150px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:11px"></textarea>
+    <button class="btn" style="margin-top:10px" onclick="applyImportText($('bk_in').value)">Restore</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function applyImportText(txt){
+  let obj; try{ obj=JSON.parse(txt); }catch(e){ toast('That doesn\'t look like a backup'); return; }
+  const incoming = (obj&&obj.DB&&obj.DB.profiles) ? obj.DB
+    : (obj&&obj.profiles) ? obj
+    : (obj&&obj.profile) ? {activeId:newId(),profiles:{}} : null;
+  if(obj&&obj.profile&&incoming){ const id=Object.keys(incoming.profiles)[0]||newId(); incoming.activeId=id; incoming.profiles[id]=obj; }
+  if(!incoming||!incoming.profiles){ toast('Not a FitCoach backup'); return; }
+  window._pendingRestore=incoming;
+  const n=Object.values(incoming.profiles).filter(d=>d&&d.profile).length;
+  modal(`<div class="grab"></div><h3>Restore backup</h3>
+    <p class="hero" style="margin:10px 0 16px">This backup has <b>${n} profile${n===1?'':'s'}</b>. Merge keeps everyone (recommended); Replace wipes current data first.</p>
+    <button class="btn" onclick="doRestore('merge')">Merge — add these profiles</button>
+    <button class="btn sec" style="margin-top:9px" onclick="doRestore('replace')">Replace everything</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function doRestore(mode){
+  const incoming=window._pendingRestore; if(!incoming){ closeModal(); return; }
+  if(mode==='replace'){ DB={activeId:incoming.activeId, profiles:incoming.profiles}; }
+  else {
+    Object.assign(DB.profiles, incoming.profiles);
+    // drop empty placeholder profiles left by a fresh install
+    Object.keys(DB.profiles).forEach(id=>{ if(!DB.profiles[id]||!DB.profiles[id].profile) delete DB.profiles[id]; });
+    if(incoming.activeId && DB.profiles[incoming.activeId]) DB.activeId=incoming.activeId;
+    else if(!DB.profiles[DB.activeId]) DB.activeId=Object.keys(DB.profiles)[0]||null;
+  }
+  window._pendingRestore=null;
+  useActive(); save(); closeModal(); toast('Data restored ✓'); TAB='today'; render(); window.scrollTo(0,0);
 }
 function openProgramPicker(){
   modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Choose a program</h3>
