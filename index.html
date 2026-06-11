@@ -1339,8 +1339,8 @@ function viewCoach(){
    The anon key is public by design; row-level security in the database
    guarantees each account can only read/write its own row.
    ========================================================================== */
-const CLOUD_URL='';   // ← filled in when the Supabase project exists (or paste in-app)
-const CLOUD_KEY='';
+const CLOUD_URL='https://iqtrouaczrxvyoodvhbg.supabase.co';   // anon key is public by design; RLS isolates each account
+const CLOUD_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxdHJvdWFjenJ4dnlvb2R2aGJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNDg1MzIsImV4cCI6MjA5NjcyNDUzMn0.9L3kQ36GDhZWH79tb7Dzevclgg1k6XINIn6quiTWcmE';
 const CLOUDKEY='fitcoach.cloud.v1';
 let CLOUD = (function(){ try{ return JSON.parse(localStorage.getItem(CLOUDKEY))||{}; }catch(e){ return {}; } })();
 function cloudSave(){ localStorage.setItem(CLOUDKEY, JSON.stringify(CLOUD)); }
