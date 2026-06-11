@@ -156,7 +156,8 @@
 <body>
 
 <header class="app">
-  <div class="brand"><span class="dot"></span> FIT<small>COACH</small></div>
+  <div class="brand"><span class="dot"></span> FIT<small>COACH</small>
+    <span id="vtag" style="font-size:10px;font-weight:800;color:var(--dim);background:var(--panel2);border:1px solid var(--line);padding:2px 7px;border-radius:10px;margin-left:2px"></span></div>
   <button class="hbtn" id="hbtn" style="display:flex;align-items:center;gap:6px" onclick="openProfiles()">Profile</button>
 </header>
 
@@ -1320,6 +1321,7 @@ const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
    DB = { activeId, profiles:{ id: <per-person data> } }
    S  = the active person's data object (a live reference into DB) — every view
         reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
+const APP_VERSION='v11';        // bump on every deploy (matches sw.js cache version)
 const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
 const DBKEY='fitcoach.db.v1';   // multi-profile container
 function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -2449,7 +2451,8 @@ function viewCoach(){
   </div>
   <div class="card"><h3>Your source packets</h3>
     <p class="hero">Every workout & meal here was built from your PDFs: F/12 Shred, Gains By Brains, 8 Week Shred, 12 Week Transformation, GROWTH and the Lean Bulking guide.</p>
-  </div>`;
+  </div>
+  <p style="text-align:center;color:var(--dim);font-size:11px;margin:4px 0 10px">FitCoach ${APP_VERSION} · updates install automatically when you open the app online</p>`;
 }
 /* ============================================================================
    CLOUD SYNC (Supabase) — sign in once per device; data auto-syncs.
@@ -2746,6 +2749,7 @@ function toast(msg){ const t=document.createElement('div'); t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),1400); }
 
 /* ---------- boot ---------- */
+$('vtag').textContent=APP_VERSION;
 render();
 const _gated = cloudCfg() && !cloudSignedIn();
 if(!_gated) maybeWeighPrompt();           // gamified daily weigh-in popup on launch
