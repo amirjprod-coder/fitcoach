@@ -770,6 +770,80 @@ const PROGRAMS = [
     ]},
   },
 },
+
+/* -------------------------------------------------- LEAN & TONED FLOW (classes) */
+{
+  id: 'lean_flow',
+  name: 'Lean & Toned Flow',
+  author: 'FitCoach',
+  goals: ['lose','recomp'],
+  equip: 'dumbbell',
+  weeks: 8,
+  daysPerWeek: 6,
+  level: 'All levels',
+  style: 'classes',
+  blurb: 'A balanced week to lean out and tone up: 2 light-weight strength days, 2 Pilates sessions, 1 hot-yoga class, 1 cardio day and 1 full rest. Strength keeps you toned in a deficit, Pilates sculpts the core, and yoga + walks burn calories and aid recovery.',
+  phases:[{weeks:[0,1,2,3],name:'Phase 1 · Build the habit'},{weeks:[4,5,6,7],name:'Phase 2 · Turn it up'}],
+  // Mon Lift-Lower · Tue Pilates · Wed Hot Yoga · Thu Lift-Upper · Fri Cardio · Sat Pilates · Sun Rest
+  schedule(w,d){ return ['lflower','pilates','hotyoga','lfupper','cardio','pilates2',null][d]; },
+  days:{
+    lflower:{banner:'LIFT · LOWER + GLUTES',motto:'STRONG & TONED',focus:'Legs & glutes',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('Warm-up · 5 min brisk walk + hip circles'),
+      X('A','Goblet Squat',3,'12','Chest tall, sit back'),
+      X('B','Dumbbell RDL',3,'12','Hinge at the hips'),
+      X('C','Walking Lunges',3,'12 / leg','Long, controlled steps'),
+      X('D','Dumbbell Hip Thrust',3,'15','Squeeze glutes at the top'),
+      X('E','Glute Kickback',3,'15 / side','Slow & controlled'),
+      X('F','Calf Raise',3,'20','2s hold at the top'),
+    ]},
+    lfupper:{banner:'LIFT · UPPER + CORE',motto:'SCULPT & SHINE',focus:'Upper body & core',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('Warm-up · arm circles + band pull-aparts'),
+      X('A','Dumbbell Shoulder Press',3,'12',''),
+      X('B','Dumbbell Bent-Over Row',3,'12','Squeeze shoulder blades'),
+      X('C','Dumbbell Chest Press',3,'12',''),
+      X('D','Lateral Raise',3,'15','Light, lead with elbows'),
+      X('E','Bicep Curl',3,'12',''),
+      X('F','Tricep Kickback',3,'12',''),
+      X('G','Plank',3,'40 sec','Brace your core'),
+    ]},
+    pilates:{banner:'PILATES · CORE SCULPT',motto:'LONG & LEAN',focus:'Core & full-body',noWeight:true,equipTags:['bodyweight'],blocks:[
+      BAR('Mat flow · slow, controlled, breathe through each move'),
+      X('A','The Hundred',1,'100','Pump arms, steady breath'),
+      X('B','Roll-Up',1,'8','Articulate the spine'),
+      X('C','Single-Leg Circles',1,'8 / side',''),
+      X('D','Single-Leg Stretch',1,'10 / side',''),
+      X('E','Double-Leg Stretch',1,'10',''),
+      X('F','Criss-Cross',1,'12 / side','Obliques'),
+      X('G','Teaser',1,'5','Control up and down'),
+      X('H','Side-Lying Leg Lifts',1,'15 / side',''),
+      X('I','Glute Bridge Pulses',1,'20',''),
+    ]},
+    pilates2:{banner:'PILATES · FLOW',motto:'FLOW & GLOW',focus:'Core & glutes',noWeight:true,equipTags:['bodyweight'],blocks:[
+      BAR('Mat flow · slow, controlled, breathe through each move'),
+      X('A','The Hundred',1,'100',''),
+      X('B','Roll-Up',1,'8',''),
+      X('C','Swimming',1,'30 sec','Lengthen front & back'),
+      X('D','Scissors',1,'10 / side',''),
+      X('E','Plank Shoulder Taps',1,'20',''),
+      X('F','Clamshells',1,'20 / side',''),
+      X('G','Donkey Kicks',1,'15 / side',''),
+      X('H','Bird-Dog',1,'10 / side',''),
+      X('I','Hollow Hold',1,'30 sec',''),
+    ]},
+    hotyoga:{banner:'HOT YOGA',motto:'SWEAT & RESET',focus:'Recovery & flexibility',cardio:true,session:[
+      'Hot yoga class — 60 min (Vinyasa or Hot Hatha).',
+      'Hydrate well before, during and after.',
+      'Flow with your breath; modify any pose you need to.',
+      'Burns calories, boosts flexibility and helps you recover from lifting.',
+    ]},
+    cardio:{banner:'CARDIO',motto:'BURN BRIGHT',focus:'Fat-burn cardio',cardio:true,session:[
+      'Intervals: 1 min brisk / 1 min easy × 10 (~20 min).',
+      'Or 35–45 min incline walk / steady cardio you enjoy.',
+      'Keep it conversational on the easy stretches.',
+      'Finish with 5 min of stretching.',
+    ]},
+  },
+},
 ];
 
 /* ============================================================================
@@ -827,6 +901,17 @@ const TUNING = {
       'Fixed the source\'s leg-curl / leg-extension mix-up so quads and hams are both covered.',
     ],
   },
+};
+TUNING.lean_flow = {
+  rest: 'Strength days: 60–90s between sets. Pilates & yoga move with the breath — minimal rest. Cardio is continuous.',
+  tempo: 'Lift light-to-moderate with control (2s down, 1s up). In Pilates, slower is harder — quality over speed.',
+  progression: 'Add a little weight or 1–2 reps on the lifts as they get easy; in Pilates hold longer or add a pulse. ' + OVERLOAD,
+  notes: [
+    'Toning = a little muscle + less fat, so the weight days matter — don\'t skip them for classes only.',
+    'Protein at every meal keeps you full and toned in a deficit; build veg-heavy plates.',
+    'Daily walking (8–10k steps) does more for fat loss than any single class.',
+    'Hot-yoga water loss isn\'t fat — trust the weekly weight trend, not the post-class scale.',
+  ],
 };
 PROGRAMS.forEach(p => { p.tuning = TUNING[p.id]; });
 

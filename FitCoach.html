@@ -157,7 +157,7 @@
 
 <header class="app">
   <div class="brand"><span class="dot"></span> FIT<small>COACH</small></div>
-  <button class="hbtn" id="hbtn" onclick="App.headerAction()">Coach</button>
+  <button class="hbtn" id="hbtn" style="display:flex;align-items:center;gap:6px" onclick="openProfiles()">Profile</button>
 </header>
 
 <main id="view"></main>
@@ -939,6 +939,80 @@ const PROGRAMS = [
     ]},
   },
 },
+
+/* -------------------------------------------------- LEAN & TONED FLOW (classes) */
+{
+  id: 'lean_flow',
+  name: 'Lean & Toned Flow',
+  author: 'FitCoach',
+  goals: ['lose','recomp'],
+  equip: 'dumbbell',
+  weeks: 8,
+  daysPerWeek: 6,
+  level: 'All levels',
+  style: 'classes',
+  blurb: 'A balanced week to lean out and tone up: 2 light-weight strength days, 2 Pilates sessions, 1 hot-yoga class, 1 cardio day and 1 full rest. Strength keeps you toned in a deficit, Pilates sculpts the core, and yoga + walks burn calories and aid recovery.',
+  phases:[{weeks:[0,1,2,3],name:'Phase 1 · Build the habit'},{weeks:[4,5,6,7],name:'Phase 2 · Turn it up'}],
+  // Mon Lift-Lower · Tue Pilates · Wed Hot Yoga · Thu Lift-Upper · Fri Cardio · Sat Pilates · Sun Rest
+  schedule(w,d){ return ['lflower','pilates','hotyoga','lfupper','cardio','pilates2',null][d]; },
+  days:{
+    lflower:{banner:'LIFT · LOWER + GLUTES',motto:'STRONG & TONED',focus:'Legs & glutes',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('Warm-up · 5 min brisk walk + hip circles'),
+      X('A','Goblet Squat',3,'12','Chest tall, sit back'),
+      X('B','Dumbbell RDL',3,'12','Hinge at the hips'),
+      X('C','Walking Lunges',3,'12 / leg','Long, controlled steps'),
+      X('D','Dumbbell Hip Thrust',3,'15','Squeeze glutes at the top'),
+      X('E','Glute Kickback',3,'15 / side','Slow & controlled'),
+      X('F','Calf Raise',3,'20','2s hold at the top'),
+    ]},
+    lfupper:{banner:'LIFT · UPPER + CORE',motto:'SCULPT & SHINE',focus:'Upper body & core',equipTags:['dumbbell','bodyweight'],blocks:[
+      BAR('Warm-up · arm circles + band pull-aparts'),
+      X('A','Dumbbell Shoulder Press',3,'12',''),
+      X('B','Dumbbell Bent-Over Row',3,'12','Squeeze shoulder blades'),
+      X('C','Dumbbell Chest Press',3,'12',''),
+      X('D','Lateral Raise',3,'15','Light, lead with elbows'),
+      X('E','Bicep Curl',3,'12',''),
+      X('F','Tricep Kickback',3,'12',''),
+      X('G','Plank',3,'40 sec','Brace your core'),
+    ]},
+    pilates:{banner:'PILATES · CORE SCULPT',motto:'LONG & LEAN',focus:'Core & full-body',noWeight:true,equipTags:['bodyweight'],blocks:[
+      BAR('Mat flow · slow, controlled, breathe through each move'),
+      X('A','The Hundred',1,'100','Pump arms, steady breath'),
+      X('B','Roll-Up',1,'8','Articulate the spine'),
+      X('C','Single-Leg Circles',1,'8 / side',''),
+      X('D','Single-Leg Stretch',1,'10 / side',''),
+      X('E','Double-Leg Stretch',1,'10',''),
+      X('F','Criss-Cross',1,'12 / side','Obliques'),
+      X('G','Teaser',1,'5','Control up and down'),
+      X('H','Side-Lying Leg Lifts',1,'15 / side',''),
+      X('I','Glute Bridge Pulses',1,'20',''),
+    ]},
+    pilates2:{banner:'PILATES · FLOW',motto:'FLOW & GLOW',focus:'Core & glutes',noWeight:true,equipTags:['bodyweight'],blocks:[
+      BAR('Mat flow · slow, controlled, breathe through each move'),
+      X('A','The Hundred',1,'100',''),
+      X('B','Roll-Up',1,'8',''),
+      X('C','Swimming',1,'30 sec','Lengthen front & back'),
+      X('D','Scissors',1,'10 / side',''),
+      X('E','Plank Shoulder Taps',1,'20',''),
+      X('F','Clamshells',1,'20 / side',''),
+      X('G','Donkey Kicks',1,'15 / side',''),
+      X('H','Bird-Dog',1,'10 / side',''),
+      X('I','Hollow Hold',1,'30 sec',''),
+    ]},
+    hotyoga:{banner:'HOT YOGA',motto:'SWEAT & RESET',focus:'Recovery & flexibility',cardio:true,session:[
+      'Hot yoga class — 60 min (Vinyasa or Hot Hatha).',
+      'Hydrate well before, during and after.',
+      'Flow with your breath; modify any pose you need to.',
+      'Burns calories, boosts flexibility and helps you recover from lifting.',
+    ]},
+    cardio:{banner:'CARDIO',motto:'BURN BRIGHT',focus:'Fat-burn cardio',cardio:true,session:[
+      'Intervals: 1 min brisk / 1 min easy × 10 (~20 min).',
+      'Or 35–45 min incline walk / steady cardio you enjoy.',
+      'Keep it conversational on the easy stretches.',
+      'Finish with 5 min of stretching.',
+    ]},
+  },
+},
 ];
 
 /* ============================================================================
@@ -996,6 +1070,17 @@ const TUNING = {
       'Fixed the source\'s leg-curl / leg-extension mix-up so quads and hams are both covered.',
     ],
   },
+};
+TUNING.lean_flow = {
+  rest: 'Strength days: 60–90s between sets. Pilates & yoga move with the breath — minimal rest. Cardio is continuous.',
+  tempo: 'Lift light-to-moderate with control (2s down, 1s up). In Pilates, slower is harder — quality over speed.',
+  progression: 'Add a little weight or 1–2 reps on the lifts as they get easy; in Pilates hold longer or add a pulse. ' + OVERLOAD,
+  notes: [
+    'Toning = a little muscle + less fat, so the weight days matter — don\'t skip them for classes only.',
+    'Protein at every meal keeps you full and toned in a deficit; build veg-heavy plates.',
+    'Daily walking (8–10k steps) does more for fat loss than any single class.',
+    'Hot-yoga water loss isn\'t fat — trust the weekly weight trend, not the post-class scale.',
+  ],
 };
 PROGRAMS.forEach(p => { p.tuning = TUNING[p.id]; });
 
@@ -1209,14 +1294,32 @@ const WHEEL=[DESK[0],DESK[1],DESK[2],DESK[6],DESK[5],DESK[8],DESK[11],DESK[13]];
 const fmt = (n)=> (Math.round(n*10)/10).toLocaleString();
 const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- persistence ---------- */
-const KEY='fitcoach.v1';
-let S = load();
-function load(){
-  try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d) return d; }catch(e){}
-  return { profile:null, logs:{}, weights:[], food:{}, viewWeek:null };
+/* ---------- persistence (multi-profile) ----------
+   DB = { activeId, profiles:{ id: <per-person data> } }
+   S  = the active person's data object (a live reference into DB) — every view
+        reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
+const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
+const DBKEY='fitcoach.db.v1';   // multi-profile container
+function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function blankData(){ return { profile:null, logs:{}, weights:[], food:{}, swaps:{}, moveLog:{},
+  viewWeek:null, openSessions:null, showPast:false, showTuning:false, lastWeighPrompt:null, bestStreak:0 }; }
+function loadDB(){
+  try{ const d=JSON.parse(localStorage.getItem(DBKEY)); if(d&&d.profiles) return d; }catch(e){}
+  try{ const old=JSON.parse(localStorage.getItem(KEY)); if(old&&old.profile){ const id=newId(); return {activeId:id,profiles:{[id]:old}}; } }catch(e){}
+  return { activeId:null, profiles:{} };
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+let DB = loadDB();
+let S;
+function useActive(){
+  if(!DB.activeId || !DB.profiles[DB.activeId]){
+    const ids=Object.keys(DB.profiles);
+    if(ids.length) DB.activeId=ids[0];
+    else { const id=newId(); DB.profiles[id]=blankData(); DB.activeId=id; }
+  }
+  S = DB.profiles[DB.activeId];
+}
+useActive();
+function save(){ localStorage.setItem(DBKEY, JSON.stringify(DB)); }
 
 /* ---------- date / schedule helpers ---------- */
 function weekdayIdx(date){ return (date.getDay()+6)%7; } // Mon=0..Sun=6
@@ -1235,6 +1338,7 @@ const WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const EQRANK={gym:3,dumbbell:2,minimal:1};
 function canDo(userEquip, progEquip){ return EQRANK[userEquip] >= EQRANK[progEquip]; }
 function recommend(p){
+  if(p.style==='classes') return 'lean_flow';   // Pilates / hot yoga / cardio focus
   const order={lose:['gbb6','f12','shred8'],gain:['growth','transform12'],recomp:['gbb6','growth','transform12'],general:['transform12','gbb6']};
   const list=order[p.goal]||['gbb6'];
   let pick=list.find(id=>canDo(p.equip,prog(id).equip));
@@ -1253,11 +1357,12 @@ function whyPicked(p,id){
 /* ============================================================================
    ONBOARDING
    ========================================================================== */
-let ob = {step:0, d:{sex:'male',activity:'moderate',goal:'lose',equip:'gym',days:5,unit:'imperial',ft:5,in:10,lb:180,goalLb:170,age:28,name:''}};
-function startOnboarding(){ ob={step:0,d:{...ob.d}}; renderOnboard(); }
+const AVATARS=['💪','🧘‍♀️','🏃‍♀️','🏋️','🤸‍♀️','🔥','🌸','⭐'];
+let ob = {step:0, d:{sex:'male',activity:'moderate',goal:'lose',equip:'gym',style:'gym',days:5,unit:'imperial',ft:5,in:10,lb:180,goalLb:170,age:28,name:'',avatar:'💪'}};
+function startOnboarding(){ ob={step:0,d:{sex:'female',activity:'moderate',goal:'lose',equip:'dumbbell',style:'gym',days:5,unit:'imperial',ft:5,in:6,lb:150,goalLb:135,age:28,name:'',avatar:'💪'}}; renderOnboard(); }
 function renderOnboard(){
   $('tabbar').classList.add('hide');
-  const steps=[obWelcome,obStats,obGoal,obEquip,obReview];
+  const steps=[obWelcome,obStats,obGoal,obStyle,obEquip,obReview];
   $('view').innerHTML = `<div class="stepwrap">${steps.map((_,i)=>`<div class="stepdot ${i<=ob.step?'on':''}"></div>`).join('')}</div>`
     + `<div id="obc"></div>`;
   steps[ob.step]();
@@ -1270,10 +1375,30 @@ function obWelcome(){
   $('obc').innerHTML = `
   <div class="card">
     <h2 style="font-size:26px;margin-bottom:8px">Hey 👋 I'm your coach.</h2>
-    <p class="hero">I'll build your training, diet and weight plan from your own workout packets — and lay every session out in the sheet style you like. First, a few quick things.</p>
+    <p class="hero">I'll build a training, diet and weight plan tailored to you. First, a few quick things.</p>
     <label class="fld"><span class="lab">What should I call you?</span>
       <input id="i_name" placeholder="Your name" value="${esc(ob.d.name)}"></label>
+    <span class="lab">Pick an avatar</span>
+    <div class="chips" style="margin-bottom:14px">
+      ${AVATARS.map(a=>`<button class="chip ${ob.d.avatar===a?'on':''}" style="font-size:22px;min-width:18%;flex:none;padding:9px 0" onclick="obSet('avatar','${a}')">${a}</button>`).join('')}
+    </div>
     <button class="btn" onclick="ob.d.name=$('i_name').value.trim();obNext()">Let's go →</button>
+  </div>`;
+}
+function obStyle(){
+  const d=ob.d;
+  const opts=[['gym','Gym & weights','Strength-focused training programs'],
+    ['classes','Classes & flow','Pilates, hot yoga, cardio + light weights — lean & toned'],
+    ['mix','A mix of both','Weights plus some classes']];
+  $('obc').innerHTML=`
+  <div class="card">
+    <h3>How do you like to train?</h3>
+    <div class="chips" style="flex-direction:column">
+    ${opts.map(([k,t,s])=>`<button class="chip ${d.style===k?'on':''}" style="text-align:left;min-width:100%" onclick="obSet('style','${k}')">
+      <b style="font-size:15px">${t}</b><br><span style="font-weight:600;font-size:12px;opacity:.8">${s}</span></button>`).join('')}
+    </div>
+    <div class="btnrow" style="margin-top:6px"><button class="btn ghost" onclick="obBack()">Back</button>
+      <button class="btn" onclick="obNext()">Next →</button></div>
   </div>`;
 }
 function obStats(){
@@ -1372,7 +1497,7 @@ function finishOnboard(id){
   const d=ob.d;
   S.profile={name:d.name,sex:d.sex,age:d.age,heightCm:Math.round((d.ft*12+ +d.in)*2.54),
     weightLb:d.lb,goalLb:d.goalLb,activity:d.activity,goal:d.goal,equip:d.equip,days:d.days,
-    programId:id,startDate:todayISO(),unit:d.unit};
+    style:d.style,avatar:d.avatar,programId:id,startDate:todayISO(),unit:d.unit};
   if(!S.weights.length) S.weights=[{d:todayISO(),w:d.lb}];
   S.swaps=S.swaps||{};
   save(); go('today');
@@ -1389,7 +1514,15 @@ function renderTabs(){
   $('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button class="${TAB===k?'on':''}" onclick="go('${k}')">
     <span class="ic">${i}</span>${l}</button>`).join('');
 }
+function updateHeader(){
+  const hb=$('hbtn'); if(!hb) return;
+  if(S.profile){ hb.style.display='flex';
+    hb.innerHTML=`<span style="font-size:15px">${S.profile.avatar||'🙂'}</span> ${esc((S.profile.name||'Me').split(' ')[0])} <span style="opacity:.55">⌄</span>`; }
+  else hb.style.display='none';
+}
+function goalLabel(g){ return {lose:'Lose / cut',gain:'Build muscle',recomp:'Recomp',general:'General'}[g]||g; }
 function render(){
+  updateHeader();
   if(!S.profile){ startOnboarding(); return; }
   // self-heal: if a stale/old saved profile points at a program that no longer exists,
   // re-pick one instead of hard-crashing on a blank screen.
@@ -1405,7 +1538,37 @@ function render(){
       <button class="btn ghost" style="margin-top:9px" onclick="location.reload()">Hard refresh</button></div>`;
   }
 }
-const App={ headerAction(){ if(!S.profile){startOnboarding();return;} go('coach'); } };
+/* ---------- profiles ---------- */
+function openProfiles(){
+  const ids=Object.keys(DB.profiles).filter(id=>DB.profiles[id].profile);
+  modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Who's training?</h3>
+    ${ids.map(id=>{ const pr=DB.profiles[id].profile, active=id===DB.activeId, prg=prog(pr.programId);
+      return `<div class="listitem" style="${active?'background:rgba(180,255,61,.06);border-radius:10px;padding-left:8px;padding-right:8px':''}">
+        <div onclick="switchProfile('${id}')" style="flex:1;display:flex;align-items:center;gap:12px;cursor:pointer">
+          <span style="font-size:26px">${pr.avatar||'🙂'}</span>
+          <div><b style="font-size:15px">${esc(pr.name||'Me')}</b> ${active?'<span class="pill acc" style="margin-left:5px">active</span>':''}
+            <br><small class="muted">${esc(goalLabel(pr.goal))}${prg?' · '+esc(prg.name):''}</small></div>
+        </div>
+        ${ids.length>1?`<button class="hbtn" onclick="confirmDeleteProfile('${id}')">✕</button>`:''}
+      </div>`; }).join('')}
+    <button class="btn" style="margin-top:14px" onclick="addPerson()">➕ Add a person</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Close</button>`);
+}
+function switchProfile(id){ if(!DB.profiles[id])return; DB.activeId=id; S=DB.profiles[id]; S._trainDay=null; save(); closeModal(); TAB='today'; render(); window.scrollTo(0,0); maybeWeighPrompt(); }
+function addPerson(){ const id=newId(); DB.profiles[id]=blankData(); DB.activeId=id; S=DB.profiles[id]; save(); closeModal(); startOnboarding(); }
+function confirmDeleteProfile(id){
+  const pr=DB.profiles[id]&&DB.profiles[id].profile;
+  modal(`<div class="grab"></div><h3>Remove ${esc(pr&&pr.name||'this profile')}?</h3>
+    <p class="hero" style="margin:10px 0 16px">This deletes their workouts, food log and weight history on this device. Can't be undone.</p>
+    <button class="btn" style="background:var(--bad);color:#fff" onclick="deleteProfile('${id}')">Delete</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="openProfiles()">Cancel</button>`);
+}
+function deleteProfile(id){
+  delete DB.profiles[id];
+  if(DB.activeId===id){ DB.activeId=Object.keys(DB.profiles)[0]||null; }
+  useActive();           // re-anchor S (creates a fresh blank if none remain)
+  save(); closeModal(); TAB='today'; render(); window.scrollTo(0,0);
+}
 
 /* ============================================================================
    TODAY
@@ -1484,10 +1647,12 @@ function buildSessions(pr){
   return out;
 }
 function sessionStatus(pr,w,dayId){
+  const day=pr.days[dayId];
   const log=(S.logs[pr.id]||{})[w]&&S.logs[pr.id][w][dayId];
-  const total=pr.days[dayId].blocks.filter(b=>!b.bar).length;
+  if(day.session){ const d=!!(log&&log.__done); return {done:d?1:0,total:1,any:d}; }
+  const total=day.blocks.filter(b=>!b.bar).length;
   if(!log) return {done:0,total,any:false};
-  let done=0; Object.values(log).forEach(sets=>{ if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
+  let done=0; Object.keys(log).forEach(k=>{ if(k==='__done')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
   return {done,total,any:done>0};
 }
 function viewTrain(){
@@ -1607,13 +1772,17 @@ function repTargets(repsStr,nSets){
   });
 }
 function sheetHTML(pr,dayId,w,compact){
-  const day=pr.days[dayId]; const log=logFor(pr.id,w,dayId);
-  const maxSets=Math.max(3,...day.blocks.filter(b=>!b.bar).map(b=>+b.sets||3));
+  const day=pr.days[dayId];
+  if(day.session) return sessionSheet(pr,dayId,w);
+  const log=logFor(pr.id,w,dayId);
+  const noWt=!!day.noWeight;
+  const exSets=day.blocks.filter(b=>!b.bar).map(b=>+b.sets||1);
+  const maxSets = noWt ? Math.max(1,...exSets) : Math.max(3,...exSets,3);
   let exIdx=-1;
   const rows=day.blocks.map(b=>{
     if(b.bar) return `<tr><td class="gbar" colspan="${maxSets+3}">${esc(b.bar)}</td></tr>`;
     exIdx++; const ei=exIdx;
-    const nSets=+b.sets||3;
+    const nSets=+b.sets||(noWt?1:3);
     const name=exName(pr,dayId,ei,b.name);
     const sets=log[ei]||[];
     const tgts=repTargets(b.reps,nSets);
@@ -1623,35 +1792,43 @@ function sheetHTML(pr,dayId,w,compact){
         const v=sets[s]||{};
         const t=tgts[s];
         const done=v.done?'done':'';
-        // rep box comes PRE-FILLED with the prescribed reps; user only adds weight
-        const repVal = v.reps!=null ? v.reps : (t.def!=null ? t.def : '');
-        const repPh  = t.def!=null ? 'rep' : esc(t.label);
-        const defAttr= t.def!=null ? t.def : '';
-        cells.push(`<td class="gx-set"><span class="tgt">${esc(t.label)}</span>
-          <div class="ins">
-            <input class="${done}" inputmode="decimal" placeholder="wt" value="${v.wt??''}"
-              onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'wt','${defAttr}')">
-            <input class="${done}" inputmode="numeric" placeholder="${repPh}" value="${repVal}"
-              onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'reps','')">
-          </div></td>`);
+        if(noWt){
+          // class/Pilates day: no weight — show target + a tap-to-complete check
+          cells.push(`<td class="gx-set" style="text-align:center;padding:6px 5px"><span class="tgt">${esc(t.label)}</span>
+            <button onclick="toggleDone('${pr.id}',${w},'${dayId}',${ei},${s})"
+              style="width:100%;margin-top:4px;padding:7px 0;border-radius:7px;font-weight:800;font-size:13px;
+              background:${v.done?'rgba(180,255,61,.18)':'#1a212e'};color:${v.done?'var(--accent)':'#6b7689'};
+              border:1px solid ${v.done?'var(--accent)':'#2a3344'}">${v.done?'✓':'•'}</button></td>`);
+        } else {
+          const repVal = v.reps!=null ? v.reps : (t.def!=null ? t.def : '');
+          const repPh  = t.def!=null ? 'rep' : esc(t.label);
+          const defAttr= t.def!=null ? t.def : '';
+          cells.push(`<td class="gx-set"><span class="tgt">${esc(t.label)}</span>
+            <div class="ins">
+              <input class="${done}" inputmode="decimal" placeholder="wt" value="${v.wt??''}"
+                onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'wt','${defAttr}')">
+              <input class="${done}" inputmode="numeric" placeholder="${repPh}" value="${repVal}"
+                onchange="setLog(this,'${pr.id}',${w},'${dayId}',${ei},${s},'reps','')">
+            </div></td>`);
+        }
       } else cells.push(`<td class="gx-set" style="background:#0a0d14"></td>`);
     }
     const cat=guessCat(name,b.note);
     return `<tr>
       <td class="gx-tag">${esc(b.tag||'')}</td>
       <td class="gx-name"><div class="nm">${esc(name)}</div>${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
-        <span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}')">↺ swap</span></td>
+        ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}')">↺ swap</span>`}</td>
       ${cells.join('')}
       <td class="gx-note">${esc(b.note||'')}</td></tr>`;
   }).join('');
 
-  const setHdr=Array.from({length:maxSets},(_,i)=>`<th class="seth">SET ${i+1}</th>`).join('');
+  const setHdr=Array.from({length:maxSets},(_,i)=>`<th class="seth">${noWt?(maxSets===1?'DONE':'#'+(i+1)):'SET '+(i+1)}</th>`).join('');
   const setW=66, tableW=28+150+setW*maxSets+112;
   const cols=`<col style="width:28px"><col style="width:150px">`
     +Array.from({length:maxSets},()=>`<col style="width:${setW}px">`).join('')
     +`<col style="width:112px">`;
   const style = pr.repStyles && pr.repStyles[w];
-  const rightTag = style ? esc(style.name.toUpperCase()) : (day.cardio?'CARDIO':'REPS · WT');
+  const rightTag = style ? esc(style.name.toUpperCase()) : (noWt?'TAP TO ✓':(day.cardio?'CARDIO':'REPS · WT'));
   const styleBar = style && !day.cardio
     ? `<tr><td class="gbar" style="color:var(--accent)" colspan="${maxSets+3}">★ THIS WEEK — ${esc(style.name.toUpperCase())}: ${esc(style.detail)}</td></tr>` : '';
   return `<div class="sheet">
@@ -1666,6 +1843,22 @@ function sheetHTML(pr,dayId,w,compact){
     </table></div>
   </div>`;
 }
+function sessionSheet(pr,dayId,w){
+  const day=pr.days[dayId]; const log=logFor(pr.id,w,dayId); const done=!!log.__done;
+  return `<div class="sheet">
+    <div class="banner">${esc(day.banner)}</div>
+    <div class="motto">${esc(day.motto)}</div>
+    <div class="subhead"><span>${esc(day.focus||'')}</span><span>WK ${w+1} · CLASS</span></div>
+    <div style="padding:15px">
+      ${day.session.map(s=>`<div class="listitem" style="padding:9px 0;align-items:flex-start"><span class="tagdot" style="background:var(--accent2);margin-top:5px"></span><div class="t" style="font-size:13px">${esc(s)}</div></div>`).join('')}
+      <button class="btn ${done?'sec':''}" style="margin-top:13px" onclick="completeSession('${pr.id}',${w},'${dayId}')">${done?'✓ Completed · tap to undo':'Mark complete'}</button>
+    </div>
+  </div>`;
+}
+function completeSession(pid,w,dayId){ const log=logFor(pid,w,dayId); log.__done=!log.__done; save();
+  if(TAB==='train')viewTrain(); else if(TAB==='today')viewToday(); }
+function toggleDone(pid,w,dayId,ei,s){ const log=logFor(pid,w,dayId); log[ei]=log[ei]||[]; log[ei][s]=log[ei][s]||{};
+  log[ei][s].done=!log[ei][s].done; save(); if(TAB==='train')viewTrain(); else if(TAB==='today')viewToday(); }
 function setLog(el,pid,w,dayId,ei,s,field,def){
   const log=logFor(pid,w,dayId); log[ei]=log[ei]||[]; log[ei][s]=log[ei][s]||{};
   const cell=log[ei][s]; const val=el.value;
