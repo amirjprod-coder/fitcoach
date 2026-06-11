@@ -553,11 +553,15 @@ function buildSessions(pr){
   }
   return out;
 }
+/* which exercise set a lift day shows — home (dumbbell) or gym (barbell/machine) */
+function curLiftMode(){ const p=S.profile; if(!p) return 'home'; if(p.liftMode) return p.liftMode; return p.equip==='gym'?'gym':'home'; }
+function dayBlocks(day){ return (day.gymBlocks && curLiftMode()==='gym') ? day.gymBlocks : day.blocks; }
+
 function sessionStatus(pr,w,dayId){
   const day=pr.days[dayId];
   const log=(S.logs[pr.id]||{})[w]&&S.logs[pr.id][w][dayId];
   if(day.session){ const d=!!(log&&log.__done); return {done:d?1:0,total:1,any:d}; }
-  const total=day.blocks.filter(b=>!b.bar).length;
+  const total=dayBlocks(day).filter(b=>!b.bar).length;
   if(!log) return {done:0,total,any:false};
   let done=0; Object.keys(log).forEach(k=>{ if(k==='__done')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
   return {done,total,any:done>0};
@@ -683,10 +687,11 @@ function sheetHTML(pr,dayId,w,compact){
   if(day.session) return sessionSheet(pr,dayId,w);
   const log=logFor(pr.id,w,dayId);
   const noWt=!!day.noWeight;
-  const exSets=day.blocks.filter(b=>!b.bar).map(b=>+b.sets||1);
+  const blocks=dayBlocks(day);
+  const exSets=blocks.filter(b=>!b.bar).map(b=>+b.sets||1);
   const maxSets = noWt ? Math.max(1,...exSets) : Math.max(3,...exSets,3);
   let exIdx=-1;
-  const rows=day.blocks.map(b=>{
+  const rows=blocks.map(b=>{
     if(b.bar) return `<tr><td class="gbar" colspan="${maxSets+3}">${esc(b.bar)}</td></tr>`;
     exIdx++; const ei=exIdx;
     const nSets=+b.sets||(noWt?1:3);
@@ -735,7 +740,11 @@ function sheetHTML(pr,dayId,w,compact){
     +Array.from({length:maxSets},()=>`<col style="width:${setW}px">`).join('')
     +`<col style="width:112px">`;
   const style = pr.repStyles && pr.repStyles[w];
-  const rightTag = style ? esc(style.name.toUpperCase()) : (noWt?'TAP TO ✓':(day.cardio?'CARDIO':'REPS · WT'));
+  const rightTag = style ? esc(style.name.toUpperCase())
+    : (noWt ? 'TAP TO ✓'
+    : day.cardio ? 'CARDIO'
+    : day.gymBlocks ? (curLiftMode()==='gym'?'GYM':'HOME')+' · WT'
+    : 'REPS · WT');
   const styleBar = style && !day.cardio
     ? `<tr><td class="gbar" style="color:var(--accent)" colspan="${maxSets+3}">★ THIS WEEK — ${esc(style.name.toUpperCase())}: ${esc(style.detail)}</td></tr>` : '';
   return `<div class="sheet">
@@ -1293,6 +1302,13 @@ function viewCoach(){
     <div class="kv"><span class="k">Source</span><b>${esc(pr.author)}</b></div>
     <button class="btn sec" style="margin-top:12px" onclick="openProgramPicker()">Switch program</button>
   </div>
+  ${Object.values(pr.days).some(d=>d.gymBlocks)?`<div class="card"><h3>Lifting equipment</h3>
+    <p class="hero" style="font-size:12px;margin-bottom:11px">Switch your weight-training days between a home (dumbbell) setup and a full gym (barbell + machines). Classes, Pilates and cardio stay the same.</p>
+    <div class="seg" style="margin-bottom:0">
+      <button class="${curLiftMode()==='home'?'on':''}" onclick="setLiftMode('home')">🏠 Home · dumbbells</button>
+      <button class="${curLiftMode()==='gym'?'on':''}" onclick="setLiftMode('gym')">🏋️ Full gym</button>
+    </div>
+  </div>`:''}
   <div class="card"><h3>All your programs</h3>
     ${PROGRAMS.map(x=>`<div class="listitem"><div class="t"><b>${esc(x.name)}</b><br>
       <small>${x.weeks}wk · ${x.daysPerWeek}d/wk · ${EQUIP[x.equip].label} · ${x.goals.map(g=>({lose:'cut',gain:'build',recomp:'recomp',general:'health'})[g]).join('/')}</small></div>
@@ -1316,6 +1332,7 @@ function openProgramPicker(){
   <button class="btn ghost" style="margin-top:12px" onclick="closeModal()">Cancel</button>`);
 }
 function setProgram(id){ S.profile.programId=id; S.profile.startDate=todayISO(); S.viewWeek=null; save(); closeModal(); go('today'); }
+function setLiftMode(m){ S.profile.liftMode=m; save(); viewCoach(); }
 function editProfile(){
   const p=S.profile;
   modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Edit profile</h3>
