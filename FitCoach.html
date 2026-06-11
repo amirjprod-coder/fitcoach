@@ -1341,7 +1341,7 @@ function useActive(){
   S = DB.profiles[DB.activeId];
 }
 useActive();
-function save(){ localStorage.setItem(DBKEY, JSON.stringify(DB)); }
+function save(){ DB._ts=Date.now(); localStorage.setItem(DBKEY, JSON.stringify(DB)); cloudQueuePush(); }
 
 /* ---------- date / schedule helpers ---------- */
 function weekdayIdx(date){ return (date.getDay()+6)%7; } // Mon=0..Sun=6
@@ -2436,6 +2436,7 @@ function viewCoach(){
     <button class="btn ghost" style="margin-top:12px" onclick="editProfile()">Edit profile & goal</button>
     <button class="btn ghost" style="margin-top:9px" onclick="resetAll()">Reset everything</button>
   </div>
+  ${cloudCard()}
   <div class="card" style="border-color:var(--accent2)"><h3 style="color:var(--accent2)">💾 Backup &amp; restore</h3>
     <p class="hero" style="font-size:12.5px;margin-bottom:12px">Your data lives only on this device. <b>Back it up</b> so you never lose it — and to move it between Safari and the home-screen app, or to a new phone. Backups include <b>every profile</b>.</p>
     <div class="btnrow"><button class="btn" onclick="exportData()">⬇︎ Download backup</button>
@@ -2448,6 +2449,157 @@ function viewCoach(){
     <p class="hero">Every workout & meal here was built from your PDFs: F/12 Shred, Gains By Brains, 8 Week Shred, 12 Week Transformation, GROWTH and the Lean Bulking guide.</p>
   </div>`;
 }
+/* ============================================================================
+   CLOUD SYNC (Supabase) — sign in once per device; data auto-syncs.
+   The anon key is public by design; row-level security in the database
+   guarantees each account can only read/write its own row.
+   ========================================================================== */
+const CLOUD_URL='';   // ← filled in when the Supabase project exists (or paste in-app)
+const CLOUD_KEY='';
+const CLOUDKEY='fitcoach.cloud.v1';
+let CLOUD = (function(){ try{ return JSON.parse(localStorage.getItem(CLOUDKEY))||{}; }catch(e){ return {}; } })();
+function cloudSave(){ localStorage.setItem(CLOUDKEY, JSON.stringify(CLOUD)); }
+function cloudCfg(){ const url=(CLOUD.url||CLOUD_URL||'').replace(/\/+$/,''), key=CLOUD.key||CLOUD_KEY||''; return url&&key?{url,key}:null; }
+function cloudSignedIn(){ return !!(cloudCfg() && CLOUD.access && CLOUD.user_id); }
+
+async function cloudFetch(path, opts, retry){
+  const cfg=cloudCfg(); if(!cfg) throw new Error('not configured');
+  const headers=Object.assign({apikey:cfg.key,'Content-Type':'application/json'}, opts.auth!==false&&CLOUD.access?{Authorization:'Bearer '+CLOUD.access}:{}, opts.headers||{});
+  const res=await fetch(cfg.url+path,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
+  if(res.status===401 && !retry && CLOUD.refresh){
+    const ok=await cloudRefresh();
+    if(ok) return cloudFetch(path,opts,true);
+  }
+  return res;
+}
+async function cloudRefresh(){
+  try{
+    const cfg=cloudCfg();
+    const res=await fetch(cfg.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
+      headers:{apikey:cfg.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:CLOUD.refresh})});
+    if(!res.ok){ CLOUD.access=null; cloudSave(); return false; }
+    const j=await res.json();
+    CLOUD.access=j.access_token; CLOUD.refresh=j.refresh_token||CLOUD.refresh; cloudSave(); return true;
+  }catch(e){ return false; }
+}
+async function cloudAuth(mode,email,pass){
+  const cfg=cloudCfg(); if(!cfg) return {err:'Connect the sync server first.'};
+  const path = mode==='up' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+  try{
+    const res=await fetch(cfg.url+path,{method:'POST',headers:{apikey:cfg.key,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pass})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok) return {err:(j.error_description||j.msg||j.message||'Sign-in failed').slice(0,140)};
+    if(mode==='up' && !j.access_token) return {confirm:true};  // email confirmation required
+    CLOUD.access=j.access_token; CLOUD.refresh=j.refresh_token;
+    CLOUD.user_id=(j.user&&j.user.id)||j.id; CLOUD.email=email; cloudSave();
+    return {ok:true};
+  }catch(e){ return {err:'Network error — check the URL and your connection.'}; }
+}
+function cloudSignOut(){ CLOUD.access=null; CLOUD.refresh=null; CLOUD.user_id=null; CLOUD.email=null; cloudSave(); viewCoach(); }
+
+async function cloudPush(){
+  if(!cloudSignedIn()) return false;
+  try{
+    const res=await cloudFetch('/rest/v1/sync',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
+      body:[{user_id:CLOUD.user_id,data:DB,updated_at:new Date().toISOString()}]});
+    if(res.ok){ CLOUD.lastSync=Date.now(); CLOUD.lastErr=null; cloudSave(); return true; }
+    CLOUD.lastErr='push '+res.status; cloudSave(); return false;
+  }catch(e){ CLOUD.lastErr='offline'; cloudSave(); return false; }
+}
+async function cloudPull(){
+  if(!cloudSignedIn()) return null;
+  try{
+    const res=await cloudFetch('/rest/v1/sync?select=data,updated_at',{});
+    if(!res.ok) return null;
+    const rows=await res.json();
+    return rows&&rows[0]?rows[0]:null;
+  }catch(e){ return null; }
+}
+function cloudMerge(remote){
+  if(!remote||!remote.data||!remote.data.profiles) return false;
+  const remoteTs=new Date(remote.updated_at||0).getTime();
+  const localTs=DB._ts||0;
+  const localHasData=Object.values(DB.profiles).some(d=>d&&d.profile);
+  if(!localHasData || remoteTs>localTs){
+    // remote is the survivor: overlay remote profiles, keep local-only extras
+    Object.assign(DB.profiles, remote.data.profiles);
+    Object.keys(DB.profiles).forEach(id=>{ if(!DB.profiles[id]||!DB.profiles[id].profile) delete DB.profiles[id]; });
+    if(remote.data.activeId && DB.profiles[remote.data.activeId]) DB.activeId=remote.data.activeId;
+    useActive();
+    localStorage.setItem(DBKEY, JSON.stringify(DB)); // store without re-queueing a push loop
+    return true;
+  }
+  return false; // local newer — push will win
+}
+let _pushTimer=null;
+function cloudQueuePush(){
+  if(!cloudSignedIn()) return;
+  clearTimeout(_pushTimer);
+  _pushTimer=setTimeout(cloudPush, 2500);   // debounce: one push after a burst of edits
+}
+async function cloudSyncNow(silent){
+  if(!cloudSignedIn()){ if(!silent) toast('Sign in to sync'); return; }
+  const remote=await cloudPull();
+  const changed=cloudMerge(remote);
+  await cloudPush();
+  if(changed){ TAB='today'; render(); }
+  if(!silent) toast(CLOUD.lastErr?'Sync issue — will retry':'Synced ✓');
+  if(TAB==='coach') viewCoach();
+}
+
+/* ---- cloud UI ---- */
+function cloudCard(){
+  const cfg=cloudCfg();
+  const last=CLOUD.lastSync?new Date(CLOUD.lastSync):null;
+  let body;
+  if(!cfg){
+    body=`<p class="hero" style="font-size:12.5px;margin-bottom:12px">Connect a free sync server once, then every device signs in with the same account and your data follows you automatically.</p>
+      <button class="btn" onclick="openCloudSetup()">Connect sync server</button>`;
+  } else if(!cloudSignedIn()){
+    body=`<p class="hero" style="font-size:12.5px;margin-bottom:12px">Server connected. Sign in (or create the account the first time) — then this device syncs automatically.</p>
+      <label class="fld"><span class="lab">Email</span><input id="cl_email" type="email" autocomplete="email" value="${esc(CLOUD.email||'')}"></label>
+      <label class="fld"><span class="lab">Password</span><input id="cl_pass" type="password" autocomplete="current-password"></label>
+      <div id="cl_msg" class="hero" style="font-size:12px;color:var(--warn);margin-bottom:8px"></div>
+      <div class="btnrow"><button class="btn" onclick="doCloudAuth('in')">Sign in</button>
+        <button class="btn sec" onclick="doCloudAuth('up')">Create account</button></div>
+      <button class="btn ghost" style="margin-top:9px" onclick="openCloudSetup()">Change server</button>`;
+  } else {
+    body=`<div class="kv"><span class="k">Account</span><b>${esc(CLOUD.email||'')}</b></div>
+      <div class="kv"><span class="k">Last sync</span><b>${last?esc(fmtDate(last))+' '+last.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'—'}</b></div>
+      <div class="kv"><span class="k">Status</span><b style="color:${CLOUD.lastErr?'var(--warn)':'var(--good)'}">${CLOUD.lastErr?'⚠ '+esc(CLOUD.lastErr):'✓ syncing automatically'}</b></div>
+      <div class="btnrow" style="margin-top:12px"><button class="btn" onclick="cloudSyncNow()">Sync now</button>
+        <button class="btn sec" onclick="cloudSignOut()">Sign out</button></div>`;
+  }
+  return `<div class="card" style="border-color:#2c3f22"><h3 style="color:var(--accent)">☁️ Cloud sync</h3>${body}</div>`;
+}
+function openCloudSetup(){
+  modal(`<div class="grab"></div><h3 style="margin-bottom:8px">Connect sync server</h3>
+    <p class="hero" style="font-size:12px;margin-bottom:12px">From your Supabase project: <b>Settings → API</b>. Paste the two values — this is a one-time setup per device.</p>
+    <label class="fld"><span class="lab">Project URL</span><input id="cs_url" placeholder="https://xxxx.supabase.co" value="${esc(CLOUD.url||CLOUD_URL||'')}"></label>
+    <label class="fld"><span class="lab">Anon public key</span><input id="cs_key" placeholder="eyJ…" value="${esc(CLOUD.key||CLOUD_KEY||'')}"></label>
+    <button class="btn" onclick="saveCloudSetup()">Save</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+}
+function saveCloudSetup(){
+  const url=$('cs_url').value.trim(), key=$('cs_key').value.trim();
+  if(!/^https:\/\/.+\.supabase\.co$/.test(url.replace(/\/+$/,''))){ toast('That URL doesn\'t look right'); return; }
+  if(key.length<40){ toast('That key looks too short'); return; }
+  CLOUD.url=url; CLOUD.key=key; cloudSave(); closeModal(); viewCoach(); toast('Server connected — now sign in');
+}
+async function doCloudAuth(mode){
+  const email=$('cl_email').value.trim(), pass=$('cl_pass').value;
+  const msg=$('cl_msg');
+  if(!email||!pass||pass.length<6){ msg.textContent='Enter your email and a password (6+ characters).'; return; }
+  msg.style.color='var(--muted)'; msg.textContent=mode==='up'?'Creating account…':'Signing in…';
+  const r=await cloudAuth(mode,email,pass);
+  if(r.err){ msg.style.color='var(--warn)'; msg.textContent=r.err; return; }
+  if(r.confirm){ msg.style.color='var(--accent2)'; msg.textContent='Check your email to confirm, then come back and Sign in.'; return; }
+  toast('Signed in ✓ — syncing');
+  await cloudSyncNow(true);
+  if(TAB==='coach') viewCoach();
+}
+
 /* ---------- backup & restore (local-only data safety) ---------- */
 function backupBlob(){ return JSON.stringify({app:'fitcoach',v:1,exported:todayISO(),DB}); }
 function exportData(){
@@ -2561,6 +2713,7 @@ function toast(msg){ const t=document.createElement('div'); t.textContent=msg;
 render();
 maybeWeighPrompt();   // gamified daily weigh-in popup on launch
 startMoveTimer();     // hourly move reminders (while the app is open)
+if(cloudSignedIn()) cloudSyncNow(true);   // pull newest data on open, push local changes
 
 </script>
 </body>
