@@ -1405,6 +1405,7 @@ function obWelcome(){
       ${AVATARS.map(a=>`<button class="chip ${ob.d.avatar===a?'on':''}" style="font-size:22px;min-width:18%;flex:none;padding:9px 0" onclick="obSet('avatar','${a}')">${a}</button>`).join('')}
     </div>
     <button class="btn" onclick="ob.d.name=$('i_name').value.trim();obNext()">Let's go →</button>
+    ${Object.values(DB.profiles).some(d=>d&&d.profile)?`<button class="btn ghost" style="margin-top:9px" onclick="openProfiles()">Switch to an existing person</button>`:''}
   </div>`;
 }
 function obStyle(){
@@ -2677,6 +2678,11 @@ function setLiftMode(m){ S.profile.liftMode=m; save(); viewCoach(); }
 function editProfile(){
   const p=S.profile;
   modal(`<div class="grab"></div><h3 style="margin-bottom:12px">Edit profile</h3>
+    <label class="fld"><span class="lab">Name</span><input id="e_name" value="${esc(p.name||'')}" placeholder="Name"></label>
+    <span class="lab">Avatar</span>
+    <div class="chips" style="margin-bottom:13px">
+      ${AVATARS.map(a=>`<button class="chip ${p.avatar===a?'on':''}" style="font-size:20px;min-width:18%;flex:none;padding:8px 0" onclick="[...this.parentElement.children].forEach(c=>c.classList.remove('on'));this.classList.add('on');this.dataset.pick='1'" data-av="${a}">${a}</button>`).join('')}
+    </div>
     <label class="fld"><span class="lab">Goal</span>
       <select id="e_goal">${[['lose','Lose / cut'],['gain','Build muscle'],['recomp','Recomp'],['general','General']].map(([k,l])=>`<option value="${k}" ${p.goal===k?'selected':''}>${l}</option>`).join('')}</select></label>
     <label class="fld"><span class="lab">Equipment</span>
@@ -2692,13 +2698,19 @@ function editProfile(){
 function saveProfile(){
   const p=S.profile; p.goal=$('e_goal').value; p.equip=$('e_eq').value; p.activity=$('e_act').value;
   p.weightLb=+$('e_w').value||p.weightLb; p.goalLb=+$('e_g').value||p.goalLb;
-  save(); closeModal(); viewCoach();
+  const nm=$('e_name').value.trim(); if(nm) p.name=nm;
+  const av=document.querySelector('.sheetmodal .chip.on[data-av]'); if(av) p.avatar=av.dataset.av;
+  save(); closeModal(); updateHeader(); viewCoach();
 }
 function reRecommend(){ const id=recommend(S.profile); setProgram(id); }
-function resetAll(){ modal(`<div class="grab"></div><h3>Reset everything?</h3>
-  <p class="hero" style="margin:10px 0 16px">This clears your profile, logs, weight history and food log on this device.</p>
-  <button class="btn" style="background:var(--bad);color:#fff" onclick="localStorage.removeItem(KEY);location.reload()">Yes, wipe it</button>
+function resetAll(){ const nm=esc(S.profile&&S.profile.name||'this profile');
+  modal(`<div class="grab"></div><h3>Reset ${nm}?</h3>
+  <p class="hero" style="margin:10px 0 16px">This clears <b>${nm}'s</b> plan, workout logs, weight history and food log on this device. Other profiles are untouched.</p>
+  <button class="btn" style="background:var(--bad);color:#fff" onclick="doResetActive()">Yes, reset ${nm}</button>
   <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`); }
+function doResetActive(){
+  DB.profiles[DB.activeId]=blankData(); useActive(); save(); closeModal(); TAB='today'; render(); window.scrollTo(0,0);
+}
 
 /* ============================================================================
    MODAL + TOAST
