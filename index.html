@@ -155,6 +155,17 @@
   .volrow .vbar{flex:1;height:9px;background:#1a212e;border-radius:5px;overflow:hidden}
   .volrow .vbar span{display:block;height:100%;border-radius:5px}
   .volrow .vnum{font-size:12px;font-weight:800;color:#e8eef7;width:26px;text-align:right;flex:none}
+  .gx-name .rm{margin-top:5px;margin-left:5px;display:inline-block;font-size:10px;color:#8592a8;
+    background:#1a212e;border:1px solid #2a3344;padding:2px 7px;border-radius:10px;font-weight:800;cursor:pointer}
+  .gx-name .rm:active{background:#2a3344;color:#ff8f8f}
+  .sheetedit{display:flex;gap:9px;flex-wrap:wrap;padding:9px 10px;background:#0b0f18;border-top:1px solid #000}
+  .addex,.undoex{font-size:11px;font-weight:800;padding:5px 10px;border-radius:11px;cursor:pointer}
+  .addex{color:#0a0d14;background:var(--accent)}
+  .undoex{color:#bfe0ff;background:rgba(116,192,252,.12);border:1px solid rgba(116,192,252,.3)}
+  .dayrow{display:flex;gap:6px}
+  .daychip{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-size:12px;font-weight:800;
+    background:#1a212e;border:1px solid #2a3344;color:#6b7689;cursor:pointer}
+  .daychip.on{background:var(--accent);border-color:var(--accent);color:#0a0d14}
   .tagdot{width:8px;height:8px;border-radius:50%;flex:none}
 
   .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px;margin-bottom:13px}
@@ -229,11 +240,11 @@ const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
    DB = { activeId, profiles:{ id: <per-person data> } }
    S  = the active person's data object (a live reference into DB) — every view
         reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
-const APP_VERSION='v12';        // bump on every deploy (matches sw.js cache version)
+const APP_VERSION='v13';        // bump on every deploy (matches sw.js cache version)
 const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
 const DBKEY='fitcoach.db.v1';   // multi-profile container
 function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function blankData(){ return { profile:null, logs:{}, weights:[], food:{}, swaps:{}, moveLog:{},
+function blankData(){ return { profile:null, logs:{}, weights:[], food:{}, swaps:{}, edits:{}, moveLog:{},
   viewWeek:null, openSessions:null, showPast:false, showTuning:false, lastWeighPrompt:null, bestStreak:0 }; }
 function loadDB(){
   try{ const d=JSON.parse(localStorage.getItem(DBKEY)); if(d&&d.profiles) return d; }catch(e){}
@@ -509,7 +520,7 @@ function deleteProfile(id){
    ========================================================================== */
 function viewToday(){
   const p=S.profile, pr=prog(p.programId), w=currentWeek(), wd=weekdayIdx(new Date());
-  const dayId=pr.schedule(w,wd), day=dayId?pr.days[dayId]:null;
+  const dayId=scheduleFor(pr,w,wd), day=dayId?pr.days[dayId]:null;
   const phase=(pr.phases||[]).find(ph=>ph.weeks.includes(w));
   const hour=new Date().getHours();
   const hi = hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
@@ -575,20 +586,64 @@ function buildSessions(pr){
   for(let i=0;i<pr.weeks*7;i++){
     const dt=new Date(start); dt.setDate(start.getDate()+i);
     const w=Math.floor(i/7), wd=weekdayIdx(dt);
-    const dayId=pr.schedule(w,wd);
+    const dayId=scheduleFor(pr,w,wd);
     out.push({iso:isoLocal(dt), date:dt, w, wd, dayId, isRest:!dayId});
   }
   return out;
 }
 /* which exercise set a lift day shows — home (dumbbell) or gym (barbell/machine) */
 function curLiftMode(){ const p=S.profile; if(!p) return 'home'; if(p.liftMode) return p.liftMode; return p.equip==='gym'?'gym':'home'; }
-function dayBlocks(day){ return (day.gymBlocks && curLiftMode()==='gym') ? day.gymBlocks : day.blocks; }
+/* ============================================================================
+   PLAN EDITS — a non-destructive overlay on top of the program (same idea as
+   swaps). The program in data.js stays pristine, so coach fixes keep flowing
+   through and "reset to default" is always one tap away.
+
+   CRITICAL: logs and swaps are keyed by exercise INDEX (`log[ei]`,
+   `pid.dayId.exIdx`). So we NEVER splice the block list — removing an exercise
+   only flags it hidden (its index stays reserved), and added exercises get
+   their own stable index from ADD_EI_BASE upward. Indices never shift, so
+   logged weights can never re-attach to the wrong movement.
+   ========================================================================== */
+const ADD_EI_BASE=1000;   // added moves live at 1000+, far past any base list
+function planEdits(pid,create){
+  S.edits=S.edits||{};
+  if(!S.edits[pid]&&create) S.edits[pid]={hide:{},add:{},trainDays:null};
+  const e=S.edits[pid];
+  if(e){ e.hide=e.hide||{}; e.add=e.add||{}; }
+  return e||null;
+}
+function planEdited(pid){ const e=planEdits(pid); if(!e) return false;
+  return !!(e.trainDays || Object.keys(e.hide).some(k=>e.hide[k].length) || Object.keys(e.add).some(k=>e.add[k].length)); }
+function defaultTrainDays(pr){ const out=[]; for(let d=0;d<7;d++){ try{ if(pr.schedule(0,d)) out.push(d); }catch(e){} } return out; }
+/* the week's sessions, dealt onto whichever weekdays you actually train */
+function scheduleFor(pr,w,d){
+  const ed=planEdits(pr.id);
+  const pick=ed&&ed.trainDays;
+  if(!pick) { try{ return pr.schedule(w,d); }catch(e){ return null; } }
+  const pos=pick.indexOf(d);
+  if(pos<0) return null;                                  // rest day
+  const seq=[]; for(let i=0;i<7;i++){ try{ const id=pr.schedule(w,i); if(id) seq.push(id); }catch(e){} }
+  return seq[pos]||null;                                  // fewer days picked → tail sessions drop
+}
+/* which exercises a day shows: base list (home/gym) + overlay, with stable indices */
+function dayBlocks(day,pr,dayId){
+  const base=(day.gymBlocks && curLiftMode()==='gym') ? day.gymBlocks : day.blocks;
+  const ed=(pr&&dayId)?planEdits(pr.id):null;
+  const hide=new Set((ed&&ed.hide[dayId])||[]);
+  const adds=(ed&&ed.add[dayId])||[];
+  let ei=-1;
+  const out=base.map(b=>{ if(b.bar) return b; ei++;
+    return Object.assign({},b,{__ei:ei,__hidden:hide.has(ei)}); });
+  adds.forEach(a=>out.push(Object.assign({},a,{__ei:a.ei,__added:true,__hidden:false})));
+  return out;
+}
+function hiddenCount(day,pr,dayId){ return dayBlocks(day,pr,dayId).filter(b=>b.__hidden).length; }
 
 function sessionStatus(pr,w,dayId){
   const day=pr.days[dayId];
   const log=(S.logs[pr.id]||{})[w]&&S.logs[pr.id][w][dayId];
   if(day.session){ const d=!!(log&&log.__done); return {done:d?1:0,total:1,any:d}; }
-  const total=dayBlocks(day).filter(b=>!b.bar).length;
+  const total=dayBlocks(day,pr,dayId).filter(b=>!b.bar&&!b.__hidden).length;
   if(!log) return {done:0,total,any:false};
   let done=0; Object.keys(log).forEach(k=>{ if(k==='__done')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
   return {done,total,any:done>0};
@@ -599,13 +654,12 @@ function weeklyVolume(pr,w){
   const add=(m,n)=>{ if(!m||m==='Cardio'||m==='Full Body')return; vol[m]=(vol[m]||0)+n; };
   if(typeof pr.schedule!=='function') return vol;
   for(let d=0;d<7;d++){
-    let dayId; try{ dayId=pr.schedule(w,d); }catch(e){ dayId=null; }
+    const dayId=scheduleFor(pr,w,d);
     if(!dayId) continue;
     const day=pr.days[dayId]; if(!day||day.session||day.noWeight) continue;
-    let ei=-1;
-    (dayBlocks(day)||[]).forEach(b=>{ if(b.bar||!b.name) return; ei++;
+    (dayBlocks(day,pr,dayId)||[]).forEach(b=>{ if(b.bar||!b.name||b.__hidden) return;
       const sets=+b.sets||0; if(!sets) return;
-      const m=muscleFor(exName(pr,dayId,ei,b.name),'');
+      const m=muscleFor(exName(pr,dayId,b.__ei,b.name),'');
       add(m.primary,sets);
       m.secondary.forEach(s=>add(s,sets*0.5));
     });
@@ -649,6 +703,33 @@ function balanceCard(pr,w){
       ${flags}<div style="margin-top:10px">${bars}</div>`:''}
   </div>`;
 }
+const WD_LABEL=['M','T','W','T','F','S','S'];
+function trainDaysCard(pr){
+  const ed=planEdits(pr.id);
+  const def=defaultTrainDays(pr);
+  const chosen=(ed&&ed.trainDays)||def;
+  const nSess=def.length;
+  const custom=!!(ed&&ed.trainDays);
+  const short=chosen.length<nSess;
+  const open=!!S.showDays;
+  return `<div class="card" style="padding:13px">
+    <div onclick="S.showDays=${open?'false':'true'};save();viewTrain()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+      <h3 style="margin:0;font-size:15px">📅 Training days</h3>
+      <span style="color:var(--dim);font-size:13px">${chosen.length}/wk ${open?'▲':'▼'}</span></div>
+    ${open?`<div class="muted" style="font-size:11px;margin:2px 0 9px">Tap a day to train or rest on it. Your sessions get dealt onto the days you pick.</div>
+      <div class="dayrow">${WD_LABEL.map((l,i)=>`<span class="daychip ${chosen.includes(i)?'on':''}" onclick="toggleTrainDay('${pr.id}',${i})">${l}</span>`).join('')}</div>
+      ${short?`<div class="flag lite" style="margin-top:9px">⚠️ ${nSess} sessions/week but only ${chosen.length} training day${chosen.length===1?'':'s'} picked — the last ${nSess-chosen.length} will be skipped each week.</div>`:''}
+      ${custom?`<div style="margin-top:9px"><span class="undoex" onclick="resetTrainDays('${pr.id}')">↩ Reset to program default</span></div>`:''}`:''}
+  </div>`;
+}
+function toggleTrainDay(pid,d){
+  const pr=prog(pid), ed=planEdits(pid,true);
+  const cur=(ed.trainDays||defaultTrainDays(pr)).slice();
+  const i=cur.indexOf(d); if(i>=0) cur.splice(i,1); else cur.push(d);
+  if(!cur.length){ toast('Keep at least one training day'); return; }
+  cur.sort((a,b)=>a-b); ed.trainDays=cur; save(); viewTrain();
+}
+function resetTrainDays(pid){ const ed=planEdits(pid,true); ed.trainDays=null; save(); viewTrain(); toast('Back to the program default'); }
 function viewTrain(){
   const pr=prog(S.profile.programId);
   const sessions=buildSessions(pr);
@@ -671,6 +752,7 @@ function viewTrain(){
     <h2 style="font-size:18px">${esc(pr.name)}</h2>
     <div class="muted" style="font-size:12px">${esc(fmtDate(new Date()))}${todays[0]?` · Week ${todays[0].w+1}/${pr.weeks}`:''}${phase?' · '+esc(phase.name):''}</div>
   </div>
+  ${programOver?'':trainDaysCard(pr)}
   ${programOver?'':balanceCard(pr,balWeek)}
 
   ${pastTrained.length?`<button class="btn ghost" style="margin-bottom:13px" onclick="S.showPast=!S.showPast;save();viewTrain()">
@@ -772,13 +854,13 @@ function sheetHTML(pr,dayId,w,compact){
   if(day.session) return sessionSheet(pr,dayId,w);
   const log=logFor(pr.id,w,dayId);
   const noWt=!!day.noWeight;
-  const blocks=dayBlocks(day);
-  const exSets=blocks.filter(b=>!b.bar).map(b=>+b.sets||1);
-  const maxSets = noWt ? Math.max(1,...exSets) : Math.max(3,...exSets,3);
-  let exIdx=-1;
+  const blocks=dayBlocks(day,pr,dayId);
+  const exSets=blocks.filter(b=>!b.bar&&!b.__hidden).map(b=>+b.sets||1);
+  const maxSets = noWt ? Math.max(1,...exSets,1) : Math.max(3,...exSets,3);
   const rows=blocks.map(b=>{
     if(b.bar) return `<tr><td class="gbar" colspan="${maxSets+3}">${esc(b.bar)}</td></tr>`;
-    exIdx++; const ei=exIdx;
+    if(b.__hidden) return '';                 // index stays reserved — never spliced
+    const ei=b.__ei;
     const nSets=+b.sets||(noWt?1:3);
     const name=exName(pr,dayId,ei,b.name);
     const sets=log[ei]||[];
@@ -814,7 +896,8 @@ function sheetHTML(pr,dayId,w,compact){
     return `<tr>
       <td class="gx-tag">${esc(b.tag||'')}</td>
       <td class="gx-name"><div class="nm">${esc(name)}</div>${noWt?'':muscleBadge(name,b.note)}${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
-        ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}','${esc(name)}')">↺ swap</span>`}</td>
+        ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}','${esc(name)}')">↺ swap</span>
+        <span class="rm" onclick="hideEx('${pr.id}','${dayId}',${ei})" title="Remove from this day">✕</span>`}</td>
       ${cells.join('')}
       <td class="gx-note">${esc(b.note||'')}</td></tr>`;
   }).join('');
@@ -832,6 +915,11 @@ function sheetHTML(pr,dayId,w,compact){
     : 'REPS · WT');
   const styleBar = style && !day.cardio
     ? `<tr><td class="gbar" style="color:var(--accent)" colspan="${maxSets+3}">★ THIS WEEK — ${esc(style.name.toUpperCase())}: ${esc(style.detail)}</td></tr>` : '';
+  const nHid=blocks.filter(b=>b.__hidden).length;
+  const editBar = noWt ? '' : `<div class="sheetedit">
+    <span class="addex" onclick="openAddEx('${pr.id}','${dayId}')">＋ Add exercise</span>
+    ${nHid?`<span class="undoex" onclick="restoreDay('${pr.id}','${dayId}')">↩ Restore ${nHid} removed</span>`:''}
+  </div>`;
   return `<div class="sheet">
     <div class="banner">${esc(day.banner)}</div>
     <div class="motto">${esc(day.motto)}</div>
@@ -842,8 +930,36 @@ function sheetHTML(pr,dayId,w,compact){
       ${styleBar}
       ${rows}
     </table></div>
+    ${editBar}
   </div>`;
 }
+/* ---- plan-edit actions (all reversible, none touch data.js) -------------- */
+function hideEx(pid,dayId,ei){
+  const ed=planEdits(pid,true);
+  const adds=ed.add[dayId]||[];
+  const i=adds.findIndex(a=>a.ei===ei);
+  if(i>=0){ adds.splice(i,1); }              // safe: each add carries its own stable ei
+  else { ed.hide[dayId]=ed.hide[dayId]||[]; if(!ed.hide[dayId].includes(ei)) ed.hide[dayId].push(ei); }
+  save(); redrawPlan(); toast('Removed · tap ↩ Restore to undo');
+}
+function restoreDay(pid,dayId){ const ed=planEdits(pid,true); delete ed.hide[dayId]; save(); redrawPlan(); toast('Restored'); }
+function doAddEx(pid,dayId,name){
+  const ed=planEdits(pid,true);
+  ed.add[dayId]=ed.add[dayId]||[];
+  const ei=Math.max(ADD_EI_BASE-1,...ed.add[dayId].map(a=>a.ei))+1;
+  ed.add[dayId].push({ei,name,sets:3,reps:'10',note:'added',tag:'+'});
+  save(); closeModal(); redrawPlan(); toast('Added '+name);
+}
+function openAddEx(pid,dayId){
+  window.__swap={mode:'add',pid,dayId,ei:null,cat:null,name:'',have:EQUIP[S.profile.equip].has};
+  modal(`<div class="grab"></div>
+    <h3 style="margin-bottom:4px">Add exercise</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:11px">Adds to this day only · 3×10 to start, edit as you log</div>
+    <input id="swapq" class="swapsearch" placeholder="Search — e.g. cable, chest, row…" autocomplete="off" oninput="onSwapSearch(this.value)">
+    <div id="swaplist" style="margin-top:8px;max-height:52vh;overflow:auto;-webkit-overflow-scrolling:touch">${swapListHTML('')}</div>
+    <button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cancel</button>`);
+}
+function redrawPlan(){ if(TAB==='train')viewTrain(); else if(TAB==='today')viewToday(); }
 function sessionSheet(pr,dayId,w){
   const day=pr.days[dayId]; const log=logFor(pr.id,w,dayId); const done=!!log.__done;
   return `<div class="sheet">
@@ -951,16 +1067,18 @@ function exUniverse(){
   return window.__exU=[...seen.values()];
 }
 function swapRow(x){
-  const {have,pid,dayId,ei}=window.__swap;
+  const {have,pid,dayId,ei,mode}=window.__swap;
   const ok=x.e.every(e=>have.includes(e));
   const c=MUSCLE_COLOR[x.mus.primary]||'#868e96';
+  const act = mode==='add' ? `doAddEx('${pid}','${dayId}','${esc(x.n)}')`
+                           : `doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')`;
   return `<div class="listitem"${ok?'':' style="opacity:.55"'}><div class="t"><b>${esc(x.n)}</b>
       <div class="mgrow"><span class="mgdot" style="background:${c}"></span>${esc(x.mus.primary)}
         <span class="eqp">${x.e.join(' · ')}${ok?'':' · needs more kit'}</span></div></div>
-    <button class="hbtn" style="color:var(--accent)" onclick="doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')">Use</button></div>`;
+    <button class="hbtn" style="color:var(--accent)" onclick="${act}">${mode==='add'?'Add':'Use'}</button></div>`;
 }
 function swapListHTML(q){
-  const {cat,name,have}=window.__swap;
+  const {cat,name,have,mode}=window.__swap;
   const uni=exUniverse();
   const canDo=x=>x.e.every(e=>have.includes(e));
   const byFit=(a,b)=>(canDo(b)-canDo(a))||a.n.localeCompare(b.n);
@@ -969,6 +1087,11 @@ function swapListHTML(q){
     const hits=uni.filter(x=>(x.n+' '+x.mus.primary+' '+x.mus.secondary.join(' ')+' '+x.cat).toLowerCase().includes(q)).sort(byFit);
     return hits.length? hits.map(swapRow).join('')
       : `<div class="muted" style="padding:16px 2px;font-size:13px">No moves match “${esc(q)}”.</div>`;
+  }
+  if(mode==='add'){                       // no anchor exercise — offer everything, best fit first
+    const byMus={};
+    uni.slice().sort(byFit).forEach(x=>{ (byMus[x.mus.primary]=byMus[x.mus.primary]||[]).push(x); });
+    return Object.keys(byMus).sort().map(m=>`<div class="swaphd">${esc(m)}</div>`+byMus[m].map(swapRow).join('')).join('');
   }
   const prim=name?muscleFor(name,'').primary:null;
   const inCat=uni.filter(x=>x.cat===cat).sort(byFit);

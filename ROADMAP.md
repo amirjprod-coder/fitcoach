@@ -11,8 +11,23 @@ Captured from user notes. Ordered loosely by theme. Nothing implemented yet — 
 - [ ] **Reference more than one PDF** — pull exercises/programs from multiple source PDFs, not a single program at a time.
 
 ## Program & schedule control
-- [ ] **Add / subtract workouts** — user can add or remove workouts from a day/week.
-- [ ] **Change workout days & rest days** — reconfigure which days are training vs. rest.
+- [x] **Add / subtract workouts** — DONE. `＋ Add exercise` (reuses the searchable move picker) and `✕` per row, with `↩ Restore N removed`. Scoped to a single day, fully reversible.
+- [x] **Change workout days & rest days** — DONE. "Training days" card: tap weekdays to train/rest; the week's sessions get dealt onto the days you pick. Warns when you pick fewer days than the program has sessions. Reset-to-default available.
+
+### Design: plan edits are an OVERLAY, never a fork
+`S.edits[pid] = {hide:{dayId:[ei]}, add:{dayId:[{ei,name,sets,reps}]}, trainDays:[0..6]|null}`,
+applied at two choke points — `dayBlocks()` and `scheduleFor()` — so the sheet, session
+status, weekly volume and the overtraining flag all pick edits up for free.
+
+Chosen over forking a personal copy of the program because: the `data.js` programs still
+get coach fixes (which a frozen fork would miss), reset-to-default stays possible, it syncs
+as a few keys instead of a full program blob, and it matches how swaps already behave.
+
+**The invariant that matters:** logs and swaps are keyed by exercise INDEX (`log[ei]`,
+`pid.dayId.exIdx`). So we NEVER splice the block list — removing only flags `__hidden`
+(index stays reserved) and added moves take stable indices from `ADD_EI_BASE`(1000) up.
+Splicing would silently re-attach logged weights to the wrong exercise. Verified: logging
+95lb on ei=3, then removing ei=1, leaves ei=3 pointing at the same move with the same weight.
 
 ## Coaching intelligence
 - [x] **Overtraining flag** — DONE. "Weekly Muscle Balance" card on the Train tab: `weeklyVolume()` counts effective sets/muscle for the current program week (primary full, secondary half, respects swaps), color-coded bars sorted by volume, and flags ⚠️ overtraining (≥32 sets), 🔥 antagonist imbalance (e.g. Quads 6× Hamstrings), and 💤 under-trained majors. Thresholds calibrated against all 6 programs so balanced ones (growth, gbb6) correctly read balanced.
