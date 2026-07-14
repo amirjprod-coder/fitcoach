@@ -109,6 +109,10 @@
   .gx-name .dt{color:#9fc0ff;font-size:10.5px;margin-top:2px;line-height:1.2;overflow-wrap:anywhere}
   .gx-name .sw{margin-top:5px;display:inline-block;font-size:10px;color:#0a0d14;background:var(--accent);
     padding:2px 7px;border-radius:10px;font-weight:800}
+  .gx-name .mg{margin-top:4px;display:flex;align-items:center;gap:4px;font-size:10px;font-weight:800;
+    color:#dfe8f5;letter-spacing:.02em;flex-wrap:wrap;line-height:1.2}
+  .gx-name .mgdot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.09)}
+  .gx-name .mg2{color:#8592a8;font-weight:600;font-size:9.5px}
   .gx-set{background:#11151f;min-width:62px;vertical-align:top}
   .seth{background:#0c0f17;color:var(--muted);font-size:9px;font-weight:800;text-align:center;
     padding:5px 0!important;letter-spacing:.06em}
@@ -132,6 +136,25 @@
   .listitem:last-child{border-bottom:none}
   .listitem .t{flex:1}.listitem .t b{font-weight:700;font-size:14px}
   .listitem .t small{color:var(--muted);font-size:11.5px}
+  .swapsearch{width:100%;padding:12px 13px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:11px;color:#fff;font-size:14px;font-weight:600}
+  .swapsearch:focus{outline:none;border-color:var(--accent)}
+  .swapsearch::placeholder{color:#5a6478}
+  .mgrow{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#cfe;margin-top:3px}
+  .mgrow .mgdot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.09)}
+  .mgrow .eqp{color:#7f8ba0;font-weight:600;font-size:10.5px;margin-left:2px}
+  .swaphd{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:14px 0 2px;padding-top:10px;border-top:1px solid var(--line)}
+  .flag{font-size:12px;font-weight:600;line-height:1.35;padding:9px 11px;border-radius:9px;margin-bottom:7px}
+  .flag.warn{background:rgba(255,107,107,.13);color:#ffb3b3;border:1px solid rgba(255,107,107,.35)}
+  .flag.hot{background:rgba(255,184,77,.12);color:#ffcf99;border:1px solid rgba(255,184,77,.3)}
+  .flag.lite{background:rgba(116,192,252,.1);color:#bfe0ff;border:1px solid rgba(116,192,252,.28)}
+  .flag.ok{background:rgba(180,255,61,.09);color:#cde6a0;border:1px solid rgba(180,255,61,.25)}
+  .volrow{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .volrow .vlab{font-size:11.5px;font-weight:700;color:#cfd8e6;width:78px;flex:none}
+  .volrow .vbar{flex:1;height:9px;background:#1a212e;border-radius:5px;overflow:hidden}
+  .volrow .vbar span{display:block;height:100%;border-radius:5px}
+  .volrow .vnum{font-size:12px;font-weight:800;color:#e8eef7;width:26px;text-align:right;flex:none}
   .tagdot{width:8px;height:8px;border-radius:50%;flex:none}
 
   .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px;margin-bottom:13px}
@@ -206,7 +229,7 @@ const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
    DB = { activeId, profiles:{ id: <per-person data> } }
    S  = the active person's data object (a live reference into DB) — every view
         reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
-const APP_VERSION='v11';        // bump on every deploy (matches sw.js cache version)
+const APP_VERSION='v12';        // bump on every deploy (matches sw.js cache version)
 const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
 const DBKEY='fitcoach.db.v1';   // multi-profile container
 function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -570,6 +593,62 @@ function sessionStatus(pr,w,dayId){
   let done=0; Object.keys(log).forEach(k=>{ if(k==='__done')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
   return {done,total,any:done>0};
 }
+/* ---- weekly volume per muscle → powers the overtraining flag ------------- */
+function weeklyVolume(pr,w){
+  const vol={};
+  const add=(m,n)=>{ if(!m||m==='Cardio'||m==='Full Body')return; vol[m]=(vol[m]||0)+n; };
+  if(typeof pr.schedule!=='function') return vol;
+  for(let d=0;d<7;d++){
+    let dayId; try{ dayId=pr.schedule(w,d); }catch(e){ dayId=null; }
+    if(!dayId) continue;
+    const day=pr.days[dayId]; if(!day||day.session||day.noWeight) continue;
+    let ei=-1;
+    (dayBlocks(day)||[]).forEach(b=>{ if(b.bar||!b.name) return; ei++;
+      const sets=+b.sets||0; if(!sets) return;
+      const m=muscleFor(exName(pr,dayId,ei,b.name),'');
+      add(m.primary,sets);
+      m.secondary.forEach(s=>add(s,sets*0.5));
+    });
+  }
+  return vol;
+}
+// effective-set thresholds (secondary work counts half); calibrated against the programs
+const VOL_MAX=32, VOL_LOW=6, IMB_RATIO=2.2, IMB_MIN=18;
+const MAJOR=['Chest','Back','Shoulders','Quads','Hamstrings'];
+const ANTAGONISTS=[['Chest','Back'],['Quads','Hamstrings'],['Biceps','Triceps']];
+function balanceCard(pr,w){
+  const vol=weeklyVolume(pr,w);
+  const entries=Object.entries(vol).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length) return '';
+  const max=entries[0][1];
+  let flags='';
+  const over=entries.filter(([,n])=>n>=VOL_MAX);
+  if(over.length) flags+=`<div class="flag warn">⚠️ Overdoing ${over.map(([m])=>m).join(', ')} — ${over.map(([,n])=>Math.round(n)).join(', ')} effective sets/wk. Trim a few sets or add a recovery day.</div>`;
+  const imb=[];
+  ANTAGONISTS.forEach(([a,b])=>{ const na=vol[a]||0, nb=vol[b]||0;
+    const big=Math.max(na,nb), small=Math.min(na,nb);
+    if(big>=IMB_MIN && small>0 && big/small>=IMB_RATIO)
+      imb.push(`${na>=nb?a:b} ~${(big/small).toFixed(1)}× ${na>=nb?b:a}`);
+  });
+  if(imb.length) flags+=`<div class="flag hot">🔥 Imbalanced: ${imb.join(' · ')}. Worth evening out over the week.</div>`;
+  const low=MAJOR.filter(m=>(vol[m]||0)>0 && vol[m]<VOL_LOW).map(m=>`${m} (${Math.round(vol[m])})`);
+  if(low.length) flags+=`<div class="flag lite">💤 Light this week: ${low.join(', ')} — add a set or two if it's a priority.</div>`;
+  if(!flags) flags=`<div class="flag ok">✅ Balanced — no muscle group is over- or under-cooked this week.</div>`;
+  const bars=entries.map(([m,n])=>{
+    const c=MUSCLE_COLOR[m]||'#868e96';
+    return `<div class="volrow"><span class="vlab">${esc(m)}</span>
+      <span class="vbar"><span style="width:${Math.max(4,Math.round(n/max*100))}%;background:${c}"></span></span>
+      <span class="vnum"${n>=VOL_MAX?' style="color:#ff6b6b"':''}>${Math.round(n)}</span></div>`;
+  }).join('');
+  const open=S.showBalance!==false;
+  return `<div class="card" style="padding:13px">
+    <div onclick="S.showBalance=${open?'false':'true'};save();viewTrain()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+      <h3 style="margin:0;font-size:15px">⚖︎ Weekly muscle balance</h3>
+      <span style="color:var(--dim);font-size:13px">${open?'▲':'▼'}</span></div>
+    ${open?`<div class="muted" style="font-size:11px;margin:2px 0 10px">Week ${w+1} · effective sets per muscle · secondary work counts half</div>
+      ${flags}<div style="margin-top:10px">${bars}</div>`:''}
+  </div>`;
+}
 function viewTrain(){
   const pr=prog(S.profile.programId);
   const sessions=buildSessions(pr);
@@ -585,12 +664,14 @@ function viewTrain(){
 
   const pastTrained=past.filter(s=>!s.isRest);
   const phase=(pr.phases||[]).find(ph=>todays[0]&&ph.weeks.includes(todays[0].w));
+  const balWeek=(todays[0]||future[0]||pastTrained[pastTrained.length-1]||{w:0}).w;
 
   $('view').innerHTML=`
   <div class="card" style="padding:13px">
     <h2 style="font-size:18px">${esc(pr.name)}</h2>
     <div class="muted" style="font-size:12px">${esc(fmtDate(new Date()))}${todays[0]?` · Week ${todays[0].w+1}/${pr.weeks}`:''}${phase?' · '+esc(phase.name):''}</div>
   </div>
+  ${programOver?'':balanceCard(pr,balWeek)}
 
   ${pastTrained.length?`<button class="btn ghost" style="margin-bottom:13px" onclick="S.showPast=!S.showPast;save();viewTrain()">
     ${S.showPast?'▲ Hide past sessions':`▼ Show past sessions (${pastTrained.length})`}</button>`:''}
@@ -732,8 +813,8 @@ function sheetHTML(pr,dayId,w,compact){
     const cat=guessCat(name,b.note);
     return `<tr>
       <td class="gx-tag">${esc(b.tag||'')}</td>
-      <td class="gx-name"><div class="nm">${esc(name)}</div>${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
-        ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}')">↺ swap</span>`}</td>
+      <td class="gx-name"><div class="nm">${esc(name)}</div>${noWt?'':muscleBadge(name,b.note)}${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
+        ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}','${esc(name)}')">↺ swap</span>`}</td>
       ${cells.join('')}
       <td class="gx-note">${esc(b.note||'')}</td></tr>`;
   }).join('');
@@ -812,17 +893,98 @@ function guessCat(name,note){
   if(/plank|crunch|sit-?up|leg raise|bicycle|twist|climber|core|abs/.test(n)) return 'Core';
   return 'Horizontal Push';
 }
-function openSwap(pid,dayId,ei,cat){
-  const have=EQUIP[S.profile.equip].has;
-  const list=(SWAPS[cat]||[]).filter(x=>x.e.every(e=>have.includes(e)));
-  const all=(SWAPS[cat]||[]);
-  const opts = list.length?list:all;
+/* ---- muscle-group classifier: what does this exercise actually work? ------- */
+const MUSCLE_COLOR = {
+  'Chest':'#ff6b6b','Back':'#4dabf7','Shoulders':'#ffd43b','Biceps':'#b197fc',
+  'Triceps':'#f783ac','Quads':'#69db7c','Hamstrings':'#38d9a9','Glutes':'#ffa94d',
+  'Calves':'#a9e34b','Core':'#ffe066','Traps':'#63e6be','Rear Delts':'#74c0fc',
+  'Forearms':'#ced4da','Cardio':'#868e96','Full Body':'#f06595'
+};
+function muscleFor(name,note){
+  // Classify on the NAME only — notes like "Chest & Triceps" contain muscle words
+  // that would mislead the keyword rules below.
+  const n=(name||'').toLowerCase();
+  const R=a=>({primary:a[0],secondary:a.slice(1)});
+  if(/treadmill|elliptical|\bbike\b|cycling|\brun\b|\bjog|sprint|jump ?rope|skipping|stair|\bliss\b|\bhiit\b|cardio|battle rope|\bsled\b|rower|\berg\b|warm-?up|cool-?down|conditioning|burpee|butt kick|ice skater|\bskater|daily steps|\bsteps\b|incline walk/.test(n)) return R(['Cardio']);
+  if(/calf|calves|toe raise/.test(n)) return R(['Calves']);
+  if(/wrist|forearm|farmer/.test(n)) return R(['Forearms']);
+  if(/plank|crunch|sit-?up|leg raise|knee raise|leg lift|side bend|bicycle|russian twist|\btwist\b|mountain climber|\bclimber\b|\bcore\b|\babs\b|hollow|dead ?bug|bird-?dog|woodchop|pallof|hanging|v-?up|flutter|scissor|toe touch|oblique|med ball/.test(n)) return R(['Core']);
+  if(/shrug/.test(n)) return R(['Traps','Shoulders']);
+  if(/upright row/.test(n)) return R(['Shoulders','Traps']);
+  if(/leg curl|hamstring curl|nordic/.test(n)) return R(['Hamstrings']);
+  if(/leg extension/.test(n)) return R(['Quads']);
+  if(/rdl|romanian|good morning|hyperext|back extension|stiff-?leg/.test(n)) return R(['Hamstrings','Glutes']);
+  if(/deadlift/.test(n)) return R(['Hamstrings','Glutes','Back']);
+  if(/hip thrust|glute|\bbridge\b|abduction|frog pump|donkey|clamshell|\bclam\b|hip lift/.test(n)) return R(['Glutes','Hamstrings']);
+  if(/squat|leg press|lunge|step-?up|\bhack\b|wall sit|sissy|bulgarian|split squat/.test(n)) return R(['Quads','Glutes']);
+  if(/pull-?overs?/.test(n)) return R(['Back','Chest']);
+  if(/pull-?up|chin-?up|pulldown|\blat\b|straight-?arm/.test(n)) return R(['Back','Biceps']);
+  if(/face pull|rear[- ]?delt|reverse fl(y|ye)/.test(n)) return R(['Rear Delts','Back']);
+  if(/\brow\b/.test(n)) return R(['Back','Biceps']);
+  if(/close-?grip|narrow-?grip|skull|push-?down|kickback|overhead extension|jm press|french press|tricep|\bdips?\b/.test(n)) return R(['Triceps']);
+  if(/\bcurl\b|bicep|preacher|hammer|concentration|spider|ez-?bar|drag curl|21s/.test(n)) return R(['Biceps']);
+  if(/lateral raise|front raise|rear raise|side raise/.test(n)) return R(['Shoulders']);
+  if(/arnold|military|overhead press|shoulder press|\bohp\b|push press|clean ?& ?press|pike/.test(n)) return R(['Shoulders','Triceps']);
+  if(/\bfl(y|ye)\b|pec ?de(c|ck)/.test(n)) return R(['Chest']);
+  if(/\bpress\b/.test(n) && !/bench|chest|leg press|incline|decline|squeeze|press-?up|hack/.test(n)) return R(['Shoulders','Triceps']);
+  if(/bench|chest|push-?up|press-?up|incline|decline|\bpec|squeeze press/.test(n)) return R(['Chest','Triceps','Shoulders']);
+  if(/clean|snatch|thruster|jammer|turkish|\bswing\b|man ?maker|\bpower\b/.test(n)) return R(['Full Body']);
+  const map={'Quads / Squat':['Quads','Glutes'],'Hamstrings / Hinge':['Hamstrings','Glutes'],
+    'Vertical Push':['Shoulders','Triceps'],'Horizontal Push':['Chest','Triceps'],
+    'Vertical Pull':['Back','Biceps'],'Horizontal Pull':['Back','Biceps'],
+    'Biceps':['Biceps'],'Triceps':['Triceps'],'Core':['Core']};
+  return R(map[guessCat(name,'')]||['Chest']);
+}
+function muscleBadge(name,note){
+  const m=muscleFor(name,note);
+  const c=MUSCLE_COLOR[m.primary]||'#868e96';
+  return `<div class="mg"><span class="mgdot" style="background:${c}"></span>${esc(m.primary)}`
+    +(m.secondary.length?`<span class="mg2">+ ${esc(m.secondary.join(' · '))}</span>`:'')+`</div>`;
+}
+/* flat, de-duped, searchable pool of every alternative move + its muscle */
+function exUniverse(){
+  if(window.__exU) return window.__exU;
+  const seen=new Map();
+  Object.entries(SWAPS).forEach(([cat,list])=>list.forEach(x=>{
+    if(!seen.has(x.n)) seen.set(x.n,{n:x.n,e:x.e.slice(),cat,mus:muscleFor(x.n,'')});
+  }));
+  return window.__exU=[...seen.values()];
+}
+function swapRow(x){
+  const {have,pid,dayId,ei}=window.__swap;
+  const ok=x.e.every(e=>have.includes(e));
+  const c=MUSCLE_COLOR[x.mus.primary]||'#868e96';
+  return `<div class="listitem"${ok?'':' style="opacity:.55"'}><div class="t"><b>${esc(x.n)}</b>
+      <div class="mgrow"><span class="mgdot" style="background:${c}"></span>${esc(x.mus.primary)}
+        <span class="eqp">${x.e.join(' · ')}${ok?'':' · needs more kit'}</span></div></div>
+    <button class="hbtn" style="color:var(--accent)" onclick="doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')">Use</button></div>`;
+}
+function swapListHTML(q){
+  const {cat,name,have}=window.__swap;
+  const uni=exUniverse();
+  const canDo=x=>x.e.every(e=>have.includes(e));
+  const byFit=(a,b)=>(canDo(b)-canDo(a))||a.n.localeCompare(b.n);
+  q=(q||'').trim().toLowerCase();
+  if(q){
+    const hits=uni.filter(x=>(x.n+' '+x.mus.primary+' '+x.mus.secondary.join(' ')+' '+x.cat).toLowerCase().includes(q)).sort(byFit);
+    return hits.length? hits.map(swapRow).join('')
+      : `<div class="muted" style="padding:16px 2px;font-size:13px">No moves match “${esc(q)}”.</div>`;
+  }
+  const prim=name?muscleFor(name,'').primary:null;
+  const inCat=uni.filter(x=>x.cat===cat).sort(byFit);
+  const have2=new Set(inCat.map(x=>x.n));
+  const similar=uni.filter(x=>x.cat!==cat && x.mus.primary===prim && !have2.has(x.n)).sort(byFit);
+  return inCat.map(swapRow).join('')
+    + (similar.length? `<div class="swaphd">Similar — also hits ${esc(prim)}</div>`+similar.map(swapRow).join('') : '');
+}
+function onSwapSearch(v){ const el=$('swaplist'); if(el) el.innerHTML=swapListHTML(v); }
+function openSwap(pid,dayId,ei,cat,name){
+  window.__swap={pid,dayId,ei,cat,name:name||'',have:EQUIP[S.profile.equip].has};
   modal(`<div class="grab"></div>
     <h3 style="margin-bottom:4px">Swap exercise</h3>
-    <div class="muted" style="font-size:12px;margin-bottom:12px">${esc(cat)} · moves you can do with your equipment</div>
-    ${opts.map(x=>{const ok=x.e.every(e=>have.includes(e));
-      return `<div class="listitem"><div class="t"><b>${esc(x.n)}</b><br><small>${x.e.join(' · ')}${ok?'':' · needs more kit'}</small></div>
-      <button class="hbtn" style="color:var(--accent)" onclick="doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')">Use</button></div>`;}).join('')}
+    <div class="muted" style="font-size:12px;margin-bottom:11px">${esc(cat)} · matched to your kit · or search any move</div>
+    <input id="swapq" class="swapsearch" placeholder="Search — e.g. cable, chest, row…" autocomplete="off" oninput="onSwapSearch(this.value)">
+    <div id="swaplist" style="margin-top:8px;max-height:52vh;overflow:auto;-webkit-overflow-scrolling:touch">${swapListHTML('')}</div>
     <button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cancel</button>`);
 }
 function doSwap(pid,dayId,ei,name){ S.swaps=S.swaps||{}; S.swaps[swapKey(pid,dayId,ei)]=name; save(); closeModal(); if(TAB==='train')viewTrain(); else viewToday(); }
@@ -940,8 +1102,12 @@ function ensureGoalDefaults(){
   if(!p.weighCadence) p.weighCadence='daily';
   if(p.targetRate==null){ const dir=goalDir(); p.targetRate = dir==='lose'?1 : dir==='gain'?0.5 : 0; }
 }
-function goalDir(){ const p=S.profile; const start=S.weights.length?sortedWeights()[0].w:p.weightLb;
-  return p.goalLb<start-0.5?'lose':p.goalLb>start+0.5?'gain':'maintain'; }
+function goalDir(){ const p=S.profile; if(!p) return 'maintain';
+  // Direction must come from where you are NOW, not your first-ever weigh-in — otherwise
+  // crossing (or re-setting) your goal keeps giving you the old, backwards advice.
+  const ws=sortedWeights();
+  const cur=ws.length?trendWeight(ws,p.weighCadence||'daily'):p.weightLb;
+  return p.goalLb<cur-1?'lose':p.goalLb>cur+1?'gain':'maintain'; }
 function trendWeight(ws,cadence){
   if(!ws.length) return S.profile.weightLb;
   if(cadence==='weekly') return ws[ws.length-1].w;
@@ -949,8 +1115,11 @@ function trendWeight(ws,cadence){
   const wk=ws.filter(e=>dayspan(e.d,lastD)<=6);
   return wk.reduce((a,e)=>a+e.w,0)/wk.length;            // 7-day trend (kills daily noise)
 }
-function recentWeights(ws,days){ if(!ws.length) return ws; const last=ws[ws.length-1].d;
-  return ws.filter(e=>dayspan(e.d,last)<=days); }
+function recentWeights(ws,days){ if(!ws.length) return ws;
+  // Window is anchored to TODAY, not to the last entry — anchoring to the last entry
+  // meant a months-old log still produced a confident "current" rate.
+  const t=todayISO();
+  return ws.filter(e=>{ const age=dayspan(e.d,t); return age>=0 && age<=days; }); }
 function ratePerWeek(ws){                                  // signed lb/week via least squares
   if(ws.length<2) return null;
   const t0=new Date(ws[0].d+'T00:00:00').getTime();
@@ -972,6 +1141,7 @@ function optimize(){
   const lbToGo=Math.abs(trend-goal);
   const slope=ratePerWeek(recentWeights(ws,28));          // signed
   const o={dir,cadence,start,trend,goal,target,lbToGo,slope,
+           daysSinceLog: ws.length?Math.round(dayspan(ws[ws.length-1].d,todayISO())):null,
            actual:slope==null?null:Math.abs(slope),
            toward: slope==null?null:(dir==='lose'?slope<0:dir==='gain'?slope>0:Math.abs(slope)<0.25)};
   // projection at actual rate
@@ -980,8 +1150,11 @@ function optimize(){
   // status + coaching
   const cals=dietTargets().cals;
   const pctBW = o.actual!=null && trend? (o.actual/trend*100):0;   // %bw/week
-  if(slope==null){ o.status='Gathering data'; o.color='var(--muted)';
-    o.advice=`Log ${cadence==='daily'?'a few days':'2–3 weeks'} of weigh-ins and I'll read your real rate and tune your calories.`; }
+  if(slope==null){ o.color='var(--muted)';
+    if(o.daysSinceLog!=null && o.daysSinceLog>10){ o.status='Data stale';
+      o.advice=`Your last weigh-in was ${o.daysSinceLog} days ago, so I can't read your current rate — that number would be guesswork. Log a few this week and I'll re-read it.`; }
+    else { o.status='Gathering data';
+      o.advice=`Log ${cadence==='daily'?'a few days':'2–3 weeks'} of weigh-ins and I'll read your real rate and tune your calories.`; } }
   else if(lbToGo<1){ o.status='Goal reached 🎯'; o.color='var(--good)';
     o.advice='You hit your goal — switch to maintenance in the Coach tab, or set a new target.'; }
   else if(!o.toward || o.actual<0.1){ o.status='Stalled'; o.color='var(--warn)';
@@ -1098,16 +1271,19 @@ function chartHTML(ws,goal){
   const ma=ws.map((e,i)=>{ const win=ws.filter(x=>dayspan(x.d,e.d)<=6 && x.d<=e.d); return win.reduce((a,x)=>a+x.w,0)/win.length; });
   const vals=ws.map(x=>x.w).concat(ma,[goal]);
   let mn=Math.min(...vals),mx=Math.max(...vals); if(mn===mx){mn-=2;mx+=2;} const rng=mx-mn;
-  const x=i=>pad+i*(W-2*pad)/(ws.length-1);
+  // x is spaced by REAL elapsed days, not array index — index-spacing made a 3-month
+  // gap look identical to a 1-day gap and rendered the trend slope meaningless.
+  const span=Math.max(1,dayspan(ws[0].d,ws[ws.length-1].d));
+  const x=e=>pad+dayspan(ws[0].d,e.d)*(W-2*pad)/span;
   const y=v=>pad+(1-(v-mn)/rng)*(H-2*pad);
-  const maPts=ma.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const maPts=ma.map((v,i)=>`${x(ws[i])},${y(v)}`).join(' ');
   const gy=y(goal);
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
     <line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#7ee0ff" stroke-dasharray="4 4" stroke-width="1"/>
     <text x="${W-pad}" y="${gy-4}" fill="#7ee0ff" font-size="9" text-anchor="end">goal ${fmt(goal)}</text>
-    ${ws.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.w)}" r="2.2" fill="#41506a"/>`).join('')}
+    ${ws.map(p=>`<circle cx="${x(p)}" cy="${y(p.w)}" r="2.2" fill="#41506a"/>`).join('')}
     <polyline points="${maPts}" fill="none" stroke="#b4ff3d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-    <text x="${pad}" y="${H-2}" fill="#5d6675" font-size="8">dots = daily · line = 7-day trend</text>
+    <text x="${pad}" y="${H-2}" fill="#5d6675" font-size="8">dots = daily · line = 7-day trend · x = real days</text>
   </svg>`;
 }
 function openAddWeight(){
