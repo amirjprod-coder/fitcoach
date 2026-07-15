@@ -7,8 +7,10 @@ Captured from user notes. Ordered loosely by theme. Nothing implemented yet — 
 - [x] **Muscle group per exercise** — DONE. Color-coded badge (primary + secondary) on every exercise in the Train/Today sheets, driven by a `muscleFor()` classifier (name-based, audited across all 273 exercises). Powers future work: alternatives, search, overtraining flag.
 - [x] **Better alternatives for each workout** — DONE. Swap modal now shows a muscle badge + equipment per option, sorts "can-do-with-your-kit" first, and adds a "Similar — also hits <muscle>" section pulling matching moves from other categories.
 - [x] **More alternatives + search** — DONE. Swap modal has a live search box over a 105-move universe; filters by name, muscle, or equipment across all categories with focus retained.
-- [ ] **Link to video or image** — each exercise links to a general demo video or reference image (form guide).
-- [ ] **Reference more than one PDF** — pull exercises/programs from multiple source PDFs, not a single program at a time.
+- [x] **Link to video or image** — DONE. A ▶ chip on every exercise row and every picker row, deep-linking to a YouTube search for "<name> proper form technique" (`target=_blank`, `rel=noopener noreferrer`).
+  **Why search links, not curated ones:** hand-writing ~300 video IDs would mean guessing IDs that 404 or point at the wrong lift, and they rot over time. A search deep-link always resolves and covers moves added later for free. Trade-off: it leaves the app and the top result isn't guaranteed. Swap in curated URLs later if any exercise deserves a specific clip.
+- [x] **Reference more than one PDF** — DONE. `exUniverse()` now pools the curated SWAPS list **plus every exercise from every program**: 105 → **300 moves across all 6 packets**. Each picker row shows its source (📄 GROWTH / 8 Week Shred / …). New `equipFor()` derives kit from the name (errs permissive — a move wrongly shown is a shrug, wrongly hidden you'd never find). Class/Pilates + cardio days are excluded (session content, not slottable gym moves).
+  **Not done — blending whole programs into a hybrid plan.** Each program is a coherent design and the `tuning` layer depends on that shape; splicing them would break the logic. Pooling exercises gives the cross-PDF reach without wrecking the programming.
 
 ## Program & schedule control
 - [x] **Add / subtract workouts** — DONE. `＋ Add exercise` (reuses the searchable move picker) and `✕` per row, with `↩ Restore N removed`. Scoped to a single day, fully reversible.

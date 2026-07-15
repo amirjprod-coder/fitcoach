@@ -107,8 +107,12 @@
     border-right:2px solid #000;overflow-wrap:anywhere;word-break:break-word}
   .gx-name .nm{font-weight:800;font-size:13px;line-height:1.15;overflow-wrap:anywhere}
   .gx-name .dt{color:#9fc0ff;font-size:10.5px;margin-top:2px;line-height:1.2;overflow-wrap:anywhere}
-  .gx-name .sw{margin-top:5px;display:inline-block;font-size:10px;color:#0a0d14;background:var(--accent);
-    padding:2px 7px;border-radius:10px;font-weight:800}
+  /* 4 controls share a 150px sticky column — keep them tight or ✕ wraps to its own line */
+  .gx-name .sw,.gx-name .vid,.gx-name .nt,.gx-name .rm{
+    margin-top:5px;display:inline-block;vertical-align:middle;font-size:9.5px;font-weight:800;
+    padding:2px 5px;border-radius:9px;white-space:nowrap;line-height:1.35;border:1px solid transparent}
+  .gx-name .vid,.gx-name .nt,.gx-name .rm{margin-left:3px}
+  .gx-name .sw{color:#0a0d14;background:var(--accent)}
   .gx-name .mg{margin-top:4px;display:flex;align-items:center;gap:4px;font-size:10px;font-weight:800;
     color:#dfe8f5;letter-spacing:.02em;flex-wrap:wrap;line-height:1.2}
   .gx-name .mgdot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.09)}
@@ -155,8 +159,7 @@
   .volrow .vbar{flex:1;height:9px;background:#1a212e;border-radius:5px;overflow:hidden}
   .volrow .vbar span{display:block;height:100%;border-radius:5px}
   .volrow .vnum{font-size:12px;font-weight:800;color:#e8eef7;width:26px;text-align:right;flex:none}
-  .gx-name .rm{margin-top:5px;margin-left:5px;display:inline-block;font-size:10px;color:#8592a8;
-    background:#1a212e;border:1px solid #2a3344;padding:2px 7px;border-radius:10px;font-weight:800;cursor:pointer}
+  .gx-name .rm{color:#8592a8;background:#1a212e;border:1px solid #2a3344;cursor:pointer}
   .gx-name .rm:active{background:#2a3344;color:#ff8f8f}
   .sheetedit{display:flex;gap:9px;flex-wrap:wrap;padding:9px 10px;background:#0b0f18;border-top:1px solid #000}
   .addex,.undoex{font-size:11px;font-weight:800;padding:5px 10px;border-radius:11px;cursor:pointer}
@@ -166,8 +169,7 @@
   .daychip{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-size:12px;font-weight:800;
     background:#1a212e;border:1px solid #2a3344;color:#6b7689;cursor:pointer}
   .daychip.on{background:var(--accent);border-color:var(--accent);color:#0a0d14}
-  .gx-name .nt{margin-top:5px;margin-left:5px;display:inline-block;font-size:10px;color:#8592a8;
-    background:#1a212e;border:1px solid #2a3344;padding:2px 7px;border-radius:10px;font-weight:800;cursor:pointer}
+  .gx-name .nt{color:#8592a8;background:#1a212e;border:1px solid #2a3344;cursor:pointer}
   .gx-name .nt.has{color:#0a0d14;background:#ffd43b;border-color:#ffd43b}
   .gx-name .cue{margin-top:4px;font-size:10px;line-height:1.25;color:#ffd97a;
     background:rgba(255,212,59,.1);border-left:2px solid #ffd43b;padding:3px 5px;border-radius:0 5px 5px 0;overflow-wrap:anywhere}
@@ -178,6 +180,11 @@
     color:#fff;font-size:14px;font-family:inherit;line-height:1.4;resize:vertical}
   .noteinput:focus{outline:none;border-color:var(--accent)}
   .noteinput::placeholder{color:#5a6478}
+  .gx-name .vid{color:#7ee0ff;background:rgba(126,224,255,.12);
+    border:1px solid rgba(126,224,255,.35);text-decoration:none}
+  .listitem .vid{flex:none;font-size:13px;color:#7ee0ff;background:rgba(126,224,255,.12);
+    border:1px solid rgba(126,224,255,.35);border-radius:9px;padding:6px 9px;text-decoration:none;font-weight:800}
+  .listitem .src{font-size:10px;color:#6b7689;font-weight:600;margin-top:3px}
   .tagdot{width:8px;height:8px;border-radius:50%;flex:none}
 
   .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px;margin-bottom:13px}
@@ -252,7 +259,7 @@ const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
    DB = { activeId, profiles:{ id: <per-person data> } }
    S  = the active person's data object (a live reference into DB) — every view
         reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
-const APP_VERSION='v14';        // bump on every deploy (matches sw.js cache version)
+const APP_VERSION='v15';        // bump on every deploy (matches sw.js cache version)
 const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
 const DBKEY='fitcoach.db.v1';   // multi-profile container
 function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -911,6 +918,7 @@ function sheetHTML(pr,dayId,w,compact){
       <td class="gx-name"><div class="nm">${esc(name)}</div>${noWt?'':muscleBadge(name,b.note)}${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
         ${cue?`<div class="cue">📝 ${esc(cue)}</div>`:''}
         ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}','${esc(name)}')">↺ swap</span>
+        <a class="vid" href="${howToURL(name)}" target="_blank" rel="noopener noreferrer" title="How to do it">▶︎</a>
         <span class="nt ${cue?'has':''}" onclick="openExNote('${pr.id}','${dayId}',${ei},'${esc(name)}')" title="Note for this exercise">✎</span>
         <span class="rm" onclick="hideEx('${pr.id}','${dayId}',${ei})" title="Remove from this day">✕</span>`}</td>
       ${cells.join('')}
@@ -1121,24 +1129,62 @@ function muscleBadge(name,note){
   return `<div class="mg"><span class="mgdot" style="background:${c}"></span>${esc(m.primary)}`
     +(m.secondary.length?`<span class="mg2">+ ${esc(m.secondary.join(' · '))}</span>`:'')+`</div>`;
 }
-/* flat, de-duped, searchable pool of every alternative move + its muscle */
+/* Guess the kit a move needs, from its name. Deliberately ERRS PERMISSIVE:
+   a move wrongly shown is a shrug, a move wrongly hidden you'd never find. */
+function equipFor(name){
+  const n=(name||'').toLowerCase(), e=[];
+  if(muscleFor(name,'').primary==='Cardio') return ['cardio'];
+  if(/barbell|\bbb\b|ez-?bar|landmine|t-?bar|trap bar|jammer|\bbar\b(?! dip)/.test(n)) e.push('barbell');
+  if(/dumbbell|\bdb\b|goblet/.test(n)) e.push('dumbbell');
+  if(/\bkb\b|kettlebell/.test(n)) e.push('kb');
+  if(/cable|pushdown|pulldown|\brope\b|face pull|pull-through|pec-?de/.test(n)) e.push('cable');
+  if(/machine|leg press|\bhack\b|pec-?de|leg extension|leg curl|assisted|smith|abduction/.test(n)) e.push('machine');
+  if(/band/.test(n)) e.push('band');
+  if(/pull-?up|chin-?up|hanging|bar dips?|parallel bar/.test(n)) e.push('pullupbar');
+  if(/\bbench\b|incline|decline/.test(n)) e.push('bench');
+  if(!e.length) e.push('bodyweight');
+  return e;
+}
+/* Flat, de-duped, searchable pool of every move you own — the curated SWAPS
+   list PLUS every exercise from EVERY program packet, so search/add spans all
+   your PDFs rather than one. Class/Pilates + cardio days are skipped: those are
+   session content, not gym moves you'd slot into a sheet. */
 function exUniverse(){
   if(window.__exU) return window.__exU;
   const seen=new Map();
   Object.entries(SWAPS).forEach(([cat,list])=>list.forEach(x=>{
-    if(!seen.has(x.n)) seen.set(x.n,{n:x.n,e:x.e.slice(),cat,mus:muscleFor(x.n,'')});
+    if(!seen.has(x.n)) seen.set(x.n,{n:x.n,e:x.e.slice(),cat,mus:muscleFor(x.n,''),srcs:new Set()});
   }));
+  PROGRAMS.forEach(p=>{
+    Object.values(p.days||{}).forEach(day=>{
+      if(day.noWeight||day.session) return;
+      (day.blocks||[]).concat(day.gymBlocks||[]).forEach(b=>{
+        if(b.bar||!b.name) return;
+        const mus=muscleFor(b.name,'');
+        if(mus.primary==='Cardio') return;
+        const cur=seen.get(b.name);
+        if(cur){ cur.srcs.add(p.name); return; }
+        seen.set(b.name,{n:b.name,e:equipFor(b.name),cat:guessCat(b.name,''),mus,srcs:new Set([p.name])});
+      });
+    });
+  });
   return window.__exU=[...seen.values()];
 }
+/* No curated video IDs — those rot and I'd be guessing which clip is right.
+   A search deep-link always resolves, and works for moves added later too. */
+function howToURL(name){ return 'https://www.youtube.com/results?search_query='+encodeURIComponent(name+' proper form technique'); }
 function swapRow(x){
   const {have,pid,dayId,ei,mode}=window.__swap;
   const ok=x.e.every(e=>have.includes(e));
   const c=MUSCLE_COLOR[x.mus.primary]||'#868e96';
   const act = mode==='add' ? `doAddEx('${pid}','${dayId}','${esc(x.n)}')`
                            : `doSwap('${pid}','${dayId}',${ei},'${esc(x.n)}')`;
+  const src = x.srcs&&x.srcs.size ? [...x.srcs][0] : '';
   return `<div class="listitem"${ok?'':' style="opacity:.55"'}><div class="t"><b>${esc(x.n)}</b>
       <div class="mgrow"><span class="mgdot" style="background:${c}"></span>${esc(x.mus.primary)}
-        <span class="eqp">${x.e.join(' · ')}${ok?'':' · needs more kit'}</span></div></div>
+        <span class="eqp">${x.e.join(' · ')}${ok?'':' · needs more kit'}</span></div>
+      ${src?`<div class="src">📄 ${esc(src)}</div>`:''}</div>
+    <a class="vid" href="${howToURL(x.n)}" target="_blank" rel="noopener noreferrer" title="How to do it">▶︎</a>
     <button class="hbtn" style="color:var(--accent)" onclick="${act}">${mode==='add'?'Add':'Use'}</button></div>`;
 }
 function swapListHTML(q){
