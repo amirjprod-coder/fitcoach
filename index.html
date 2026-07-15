@@ -166,6 +166,18 @@
   .daychip{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-size:12px;font-weight:800;
     background:#1a212e;border:1px solid #2a3344;color:#6b7689;cursor:pointer}
   .daychip.on{background:var(--accent);border-color:var(--accent);color:#0a0d14}
+  .gx-name .nt{margin-top:5px;margin-left:5px;display:inline-block;font-size:10px;color:#8592a8;
+    background:#1a212e;border:1px solid #2a3344;padding:2px 7px;border-radius:10px;font-weight:800;cursor:pointer}
+  .gx-name .nt.has{color:#0a0d14;background:#ffd43b;border-color:#ffd43b}
+  .gx-name .cue{margin-top:4px;font-size:10px;line-height:1.25;color:#ffd97a;
+    background:rgba(255,212,59,.1);border-left:2px solid #ffd43b;padding:3px 5px;border-radius:0 5px 5px 0;overflow-wrap:anywhere}
+  .noteex{color:#0a0d14;background:#ffd43b;font-size:11px;font-weight:800;padding:5px 10px;border-radius:11px;cursor:pointer}
+  .snote{padding:9px 11px;background:rgba(255,212,59,.08);border-top:1px solid #000;
+    font-size:12px;line-height:1.4;color:#ffe3a0;white-space:pre-wrap;overflow-wrap:anywhere}
+  .noteinput{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;
+    color:#fff;font-size:14px;font-family:inherit;line-height:1.4;resize:vertical}
+  .noteinput:focus{outline:none;border-color:var(--accent)}
+  .noteinput::placeholder{color:#5a6478}
   .tagdot{width:8px;height:8px;border-radius:50%;flex:none}
 
   .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px;margin-bottom:13px}
@@ -240,7 +252,7 @@ const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
    DB = { activeId, profiles:{ id: <per-person data> } }
    S  = the active person's data object (a live reference into DB) — every view
         reads S.profile / S.logs / S.weights / S.food etc. so switching is instant. */
-const APP_VERSION='v13';        // bump on every deploy (matches sw.js cache version)
+const APP_VERSION='v14';        // bump on every deploy (matches sw.js cache version)
 const KEY='fitcoach.v1';        // legacy single-profile key (migrated once)
 const DBKEY='fitcoach.db.v1';   // multi-profile container
 function newId(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -645,7 +657,7 @@ function sessionStatus(pr,w,dayId){
   if(day.session){ const d=!!(log&&log.__done); return {done:d?1:0,total:1,any:d}; }
   const total=dayBlocks(day,pr,dayId).filter(b=>!b.bar&&!b.__hidden).length;
   if(!log) return {done:0,total,any:false};
-  let done=0; Object.keys(log).forEach(k=>{ if(k==='__done')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
+  let done=0; Object.keys(log).forEach(k=>{ if(k==='__done'||k==='__note')return; const sets=log[k]; if(Array.isArray(sets)&&sets.some(s=>s&&s.done)) done++; });
   return {done,total,any:done>0};
 }
 /* ---- weekly volume per muscle → powers the overtraining flag ------------- */
@@ -893,10 +905,13 @@ function sheetHTML(pr,dayId,w,compact){
       } else cells.push(`<td class="gx-set" style="background:#0a0d14"></td>`);
     }
     const cat=guessCat(name,b.note);
+    const cue=exNote(pr.id,dayId,ei);
     return `<tr>
       <td class="gx-tag">${esc(b.tag||'')}</td>
       <td class="gx-name"><div class="nm">${esc(name)}</div>${noWt?'':muscleBadge(name,b.note)}${b.note?`<div class="dt">${esc(b.note)}</div>`:''}
+        ${cue?`<div class="cue">📝 ${esc(cue)}</div>`:''}
         ${noWt?'':`<span class="sw" onclick="openSwap('${pr.id}','${dayId}',${ei},'${esc(cat)}','${esc(name)}')">↺ swap</span>
+        <span class="nt ${cue?'has':''}" onclick="openExNote('${pr.id}','${dayId}',${ei},'${esc(name)}')" title="Note for this exercise">✎</span>
         <span class="rm" onclick="hideEx('${pr.id}','${dayId}',${ei})" title="Remove from this day">✕</span>`}</td>
       ${cells.join('')}
       <td class="gx-note">${esc(b.note||'')}</td></tr>`;
@@ -916,10 +931,12 @@ function sheetHTML(pr,dayId,w,compact){
   const styleBar = style && !day.cardio
     ? `<tr><td class="gbar" style="color:var(--accent)" colspan="${maxSets+3}">★ THIS WEEK — ${esc(style.name.toUpperCase())}: ${esc(style.detail)}</td></tr>` : '';
   const nHid=blocks.filter(b=>b.__hidden).length;
-  const editBar = noWt ? '' : `<div class="sheetedit">
-    <span class="addex" onclick="openAddEx('${pr.id}','${dayId}')">＋ Add exercise</span>
+  const snote=sessionNote(pr.id,w,dayId);
+  const editBar = `<div class="sheetedit">
+    ${noWt?'':`<span class="addex" onclick="openAddEx('${pr.id}','${dayId}')">＋ Add exercise</span>`}
+    <span class="noteex" onclick="openSessionNote('${pr.id}',${w},'${dayId}')">📝 ${snote?'Edit note':'Add note'}</span>
     ${nHid?`<span class="undoex" onclick="restoreDay('${pr.id}','${dayId}')">↩ Restore ${nHid} removed</span>`:''}
-  </div>`;
+  </div>${snote?`<div class="snote">${esc(snote)}</div>`:''}`;
   return `<div class="sheet">
     <div class="banner">${esc(day.banner)}</div>
     <div class="motto">${esc(day.motto)}</div>
@@ -960,6 +977,51 @@ function openAddEx(pid,dayId){
     <button class="btn ghost" style="margin-top:14px" onclick="closeModal()">Cancel</button>`);
 }
 function redrawPlan(){ if(TAB==='train')viewTrain(); else if(TAB==='today')viewToday(); }
+
+/* ============================================================================
+   NOTES — two kinds, deliberately:
+   • exercise cue  → keyed pid.dayId.ei, PERSISTS across every week (form cue,
+     injury, machine setting). You want this in front of you every session.
+   • session note  → lives on that week's log (log.__note), a one-off journal
+     entry for how the day went. Browsable via "show past sessions".
+   ========================================================================== */
+function exNoteKey(pid,dayId,ei){ return `${pid}.${dayId}.${ei}`; }
+function exNote(pid,dayId,ei){ S.exNotes=S.exNotes||{}; return S.exNotes[exNoteKey(pid,dayId,ei)]||''; }
+function openExNote(pid,dayId,ei,name){
+  const cur=exNote(pid,dayId,ei);
+  modal(`<div class="grab"></div>
+    <h3 style="margin-bottom:3px">Note · ${esc(name)}</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:11px">A cue you'll see on this exercise <b>every week</b> — form, setup, a niggle to watch.</div>
+    <textarea id="exn" class="noteinput" rows="4" placeholder="e.g. elbows tucked · seat pin 4 · left knee twinges past parallel">${esc(cur)}</textarea>
+    <button class="btn" style="margin-top:11px" onclick="saveExNote('${pid}','${dayId}',${ei})">Save note</button>
+    ${cur?`<button class="btn ghost" style="margin-top:9px" onclick="saveExNote('${pid}','${dayId}',${ei},1)">Delete note</button>`:''}
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+  setTimeout(()=>{ const t=$('exn'); if(t) t.focus(); },60);
+}
+function saveExNote(pid,dayId,ei,del){
+  S.exNotes=S.exNotes||{};
+  const k=exNoteKey(pid,dayId,ei), v=del?'':($('exn')?$('exn').value.trim():'');
+  if(v) S.exNotes[k]=v; else delete S.exNotes[k];
+  save(); closeModal(); redrawPlan(); toast(v?'Note saved':'Note cleared');
+}
+function sessionNote(pid,w,dayId){ const l=(S.logs[pid]||{})[w]&&S.logs[pid][w][dayId]; return (l&&l.__note)||''; }
+function openSessionNote(pid,w,dayId){
+  const cur=sessionNote(pid,w,dayId);
+  modal(`<div class="grab"></div>
+    <h3 style="margin-bottom:3px">Session note</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:11px">How did this one go? Energy, sleep, pain, a PR — just this session.</div>
+    <textarea id="sn" class="noteinput" rows="4" placeholder="e.g. slept 5h, felt flat · squat moved fast, go +5 next week">${esc(cur)}</textarea>
+    <button class="btn" style="margin-top:11px" onclick="saveSessionNote('${pid}',${w},'${dayId}')">Save note</button>
+    ${cur?`<button class="btn ghost" style="margin-top:9px" onclick="saveSessionNote('${pid}',${w},'${dayId}',1)">Delete note</button>`:''}
+    <button class="btn ghost" style="margin-top:9px" onclick="closeModal()">Cancel</button>`);
+  setTimeout(()=>{ const t=$('sn'); if(t) t.focus(); },60);
+}
+function saveSessionNote(pid,w,dayId,del){
+  const log=logFor(pid,w,dayId);
+  const v=del?'':($('sn')?$('sn').value.trim():'');
+  if(v) log.__note=v; else delete log.__note;
+  save(); closeModal(); redrawPlan(); toast(v?'Note saved':'Note cleared');
+}
 function sessionSheet(pr,dayId,w){
   const day=pr.days[dayId]; const log=logFor(pr.id,w,dayId); const done=!!log.__done;
   return `<div class="sheet">
@@ -970,6 +1032,8 @@ function sessionSheet(pr,dayId,w){
       ${day.session.map(s=>`<div class="listitem" style="padding:9px 0;align-items:flex-start"><span class="tagdot" style="background:var(--accent2);margin-top:5px"></span><div class="t" style="font-size:13px">${esc(s)}</div></div>`).join('')}
       <button class="btn ${done?'sec':''}" style="margin-top:13px" onclick="completeSession('${pr.id}',${w},'${dayId}')">${done?'✓ Completed · tap to undo':'Mark complete'}</button>
     </div>
+    <div class="sheetedit"><span class="noteex" onclick="openSessionNote('${pr.id}',${w},'${dayId}')">📝 ${sessionNote(pr.id,w,dayId)?'Edit note':'Add note'}</span></div>
+    ${sessionNote(pr.id,w,dayId)?`<div class="snote">${esc(sessionNote(pr.id,w,dayId))}</div>`:''}
   </div>`;
 }
 function completeSession(pid,w,dayId){ const log=logFor(pid,w,dayId); log.__done=!log.__done; save();

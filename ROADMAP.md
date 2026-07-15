@@ -33,7 +33,10 @@ Splicing would silently re-attach logged weights to the wrong exercise. Verified
 - [x] **Overtraining flag** — DONE. "Weekly Muscle Balance" card on the Train tab: `weeklyVolume()` counts effective sets/muscle for the current program week (primary full, secondary half, respects swaps), color-coded bars sorted by volume, and flags ⚠️ overtraining (≥32 sets), 🔥 antagonist imbalance (e.g. Quads 6× Hamstrings), and 💤 under-trained majors. Thresholds calibrated against all 6 programs so balanced ones (growth, gbb6) correctly read balanced.
 
 ## Tracking
-- [ ] **Notes tracking** — be able to write and track notes (per workout / per exercise / general).
+- [x] **Notes tracking** — DONE. Two kinds, deliberately separate:
+  - **Exercise cue** (`S.exNotes[pid.dayId.ei]`) — persists across *every* week, shown as an amber callout on the row; the ✎ chip lights up when set. For form cues, machine settings, a niggle to watch.
+  - **Session note** (`log.__note`) — per week, per day; amber panel at the sheet footer. For how that one session went. Browsable via "show past sessions". Works on class/no-weight days too.
+  - Cues key off the same stable `ei` as logs, so removing an exercise can't drift a note onto the wrong movement. `sessionStatus` skips `__note` so it can't be counted as a set.
 - [x] **Weight data accuracy fix** — DONE. Four real bugs found & fixed:
   1. `goalDir()` derived lose/gain from your **first-ever** weigh-in, so crossing or re-setting your goal gave backwards advice (told you to keep cutting while already under target). Now reads from your current trend weight, with a 1 lb deadband.
   2. `recentWeights()` anchored its 28-day window to your **last entry** instead of today — months-old data produced a confident, wrong "current rate" and a real projected goal date. Now anchored to today.
